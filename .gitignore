@@ -16,6 +16,14 @@ __pycache__/
 .pytest_cache/
 *.log
 
+# Large Uploads & Generated Reports
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/quarantine/*
+!backend/quarantine/.gitkeep
+backend/generated_reports/*
+!backend/generated_reports/.gitkeep
+
 # Environment variables
 .env
 *.env
