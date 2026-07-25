@@ -1,33 +1,39 @@
 import axios from 'axios';
 
 const getApiBaseUrl = () => {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    let url = process.env.NEXT_PUBLIC_API_URL.trim();
-    if (url && url !== '/') {
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = `https://${url}`;
+  let url = (process.env.NEXT_PUBLIC_API_URL || '').trim();
+
+  // If URL not set or is root slash, calculate dynamically from browser window
+  if (!url || url === '/') {
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      if (hostname.includes('onrender.com') || hostname.includes('render.com')) {
+        url = hostname.replace('-frontend', '-backend');
+      } else if (hostname.includes('loca.lt') || hostname.includes('ngrok') || hostname.includes('tunnel')) {
+        url = 'https://plain-readers-make.loca.lt';
+      } else if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        url = `http://${hostname}:8000`;
+      } else {
+        url = 'http://127.0.0.1:8000';
       }
-      return url.replace(/\/$/, '');
+    } else {
+      url = 'http://127.0.0.1:8000';
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (hostname.includes('onrender.com') || hostname.includes('render.com')) {
-      if (hostname.includes('-frontend')) {
-        const backendHost = hostname.replace('-frontend', '-backend');
-        return `https://${backendHost}`;
-      }
-      return 'https://ai-resume-analyzer-backend.onrender.com';
-    }
-    if (hostname.includes('loca.lt') || hostname.includes('ngrok') || hostname.includes('tunnel')) {
-      return 'https://plain-readers-make.loca.lt';
-    }
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return `http://${hostname}:8000`;
-    }
+  // Automatically append .onrender.com if Render service name lacks TLD
+  if (url && !url.includes('.') && !url.includes('localhost') && !url.includes('127.0.0.1')) {
+    url = `${url}.onrender.com`;
+  } else if (url && url.includes('onrender') && !url.includes('.onrender.com') && !url.includes('localhost')) {
+    url = `${url}.onrender.com`;
   }
-  return 'http://127.0.0.1:8000';
+
+  // Ensure proper protocol (https://)
+  if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `https://${url}`;
+  }
+
+  return url.replace(/\/$/, '');
 };
 
 export const api = axios.create({
