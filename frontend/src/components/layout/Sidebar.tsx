@@ -41,10 +41,6 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
     { name: 'Profile', href: '/profile', icon: User },
   ];
 
-  if (mounted && user?.is_admin) {
-    navItems.push({ name: 'Admin Operations', href: '/admin', icon: ShieldCheck });
-  }
-
   return (
     <aside
       className={`fixed top-0 left-0 z-40 h-screen bg-[#181310] text-[#EFE7DE] transition-all duration-300 flex flex-col justify-between shadow-2xl border-r border-[#2B231D] ${

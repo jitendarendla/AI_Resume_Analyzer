@@ -32,24 +32,26 @@ export default function ReportsPage() {
     }
   };
 
-  const handleDownload = (identifier: string, reportName: string) => {
-    const token = localStorage.getItem('token');
-    const url = `http://127.0.0.1:8000/api/reports/export/${identifier}`;
-
-    fetch(url, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Download failed');
-        return res.blob();
-      })
-      .then((blob) => {
-        const a = document.createElement('a');
-        a.href = window.URL.createObjectURL(blob);
-        a.download = `${reportName.replace(/ /g, '_')}_Report.xlsx`;
-        a.click();
-      })
-      .catch((e) => console.error(e));
+  const handleDownload = async (identifier: string, reportName: string) => {
+    try {
+      const response = await api.get(`/api/reports/export/${identifier}`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `${reportName.replace(/ /g, '_')}_Report.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (e) {
+      console.error('Download failed', e);
+      alert('Failed to download Excel report. Please try again.');
+    }
   };
 
   const handleDeleteReport = async (identifier: string) => {

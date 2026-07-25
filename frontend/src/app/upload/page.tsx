@@ -168,26 +168,28 @@ export default function UploadPage() {
     }
   };
 
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = async () => {
     if (!currentSessionId) return;
-    const tokenStr = localStorage.getItem('token');
-    const url = `http://127.0.0.1:8000/api/reports/export/${currentSessionId}`;
-
-    fetch(url, {
-      headers: { Authorization: `Bearer ${tokenStr}` }
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Download failed');
-        return res.blob();
-      })
-      .then((blob) => {
-        const a = document.createElement('a');
-        a.href = window.URL.createObjectURL(blob);
-        a.download = `${(reportName || 'Resume_Batch').replace(/ /g, '_')}_Report.xlsx`;
-        a.click();
-        setShowSuccessModal(false);
-      })
-      .catch((e) => console.error(e));
+    try {
+      const response = await api.get(`/api/reports/export/${currentSessionId}`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `${(reportName || 'Resume_Batch').replace(/ /g, '_')}_Report.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      setShowSuccessModal(false);
+    } catch (e) {
+      console.error('Download failed', e);
+      alert('Failed to download Excel report. Please try again.');
+    }
   };
 
   return (
