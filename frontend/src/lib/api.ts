@@ -2,7 +2,16 @@ import axios from 'axios';
 
 const getApiBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+    let url = process.env.NEXT_PUBLIC_API_URL.trim();
+    if (url === '/' || url === '') return '';
+    if (!url.startsWith('http') && !url.startsWith('/')) {
+      if (!url.includes('.')) {
+        url = `https://${url}.onrender.com`;
+      } else {
+        url = `https://${url}`;
+      }
+    }
+    return url;
   }
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
@@ -12,7 +21,9 @@ const getApiBaseUrl = () => {
     if (hostname.includes('loca.lt') || hostname.includes('ngrok') || hostname.includes('tunnel')) {
       return 'https://plain-readers-make.loca.lt';
     }
-    return `http://${hostname}:8000`;
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return `http://${hostname}:8000`;
+    }
   }
   return 'http://127.0.0.1:8000';
 };

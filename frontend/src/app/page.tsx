@@ -96,7 +96,14 @@ export default function HomePage() {
       setAuthModalOpen(false);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Invalid email or password credentials.');
+      const detail = err.response?.data?.detail;
+      if (typeof detail === 'string') {
+        setError(detail);
+      } else if (Array.isArray(detail)) {
+        setError(detail.map((d: any) => d.msg || JSON.stringify(d)).join(', '));
+      } else {
+        setError('Invalid email or password credentials.');
+      }
     } finally {
       setLoading(false);
     }
@@ -132,7 +139,14 @@ export default function HomePage() {
         setSuccess('');
       }, 1500);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed. Please check details.');
+      const detail = err.response?.data?.detail;
+      if (typeof detail === 'string') {
+        setError(detail);
+      } else if (Array.isArray(detail)) {
+        setError(detail.map((d: any) => d.msg || JSON.stringify(d)).join(', '));
+      } else {
+        setError('Registration failed. Please check details.');
+      }
     } finally {
       setLoading(false);
     }
