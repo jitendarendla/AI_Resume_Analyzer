@@ -1,0 +1,71 @@
+services:
+  # -------------------------------------------------------------
+  # 1. FastAPI Backend Web Service
+  # -------------------------------------------------------------
+  - type: web
+    name: ai-resume-analyzer-backend
+    env: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: AI Resume Analyzer <onboarding@resend.dev>
+      - key: SECRET_KEY
+        generateValue: true
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: ai-resume-analyzer-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: ai-resume-analyzer-db
+          property: password
+      - key: POSTGRES_SERVER
+        fromDatabase:
+          name: ai-resume-analyzer-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: ai-resume-analyzer-db
+          property: port
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: ai-resume-analyzer-db
+          property: database
+
+  # -------------------------------------------------------------
+  # 2. Next.js Frontend Web Service
+  # -------------------------------------------------------------
+  - type: web
+    name: ai-resume-analyzer-frontend
+    env: node
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.10.0
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: ai-resume-analyzer-backend
+          property: url
+
+# -------------------------------------------------------------
+# 3. PostgreSQL Database
+# -------------------------------------------------------------
+databases:
+  - name: ai-resume-analyzer-db
+    databaseName: resume_analyzer_db
+    user: postgres
+    region: oregon
+    plan: free

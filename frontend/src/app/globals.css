@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  --bg-elevated: #F8F5F1;
+  --bg-card: #FFFFFF;
+  --secondary-foreground: #2B241F;
+  --text-secondary: #60534A;
+  --accent-secondary: #E6C9D8;
+  --secondary: #EFE7DE;
+  --accent: #7FA9D1;
+  --accent-foreground: #FAF6F1;
+  --brand-primary: #0F2C59;
+  --brand-accent: #0047AB;
+  --border-color: #E8E2D9;
+}
+
+body {
+  background-color: var(--bg-elevated);
+  color: var(--secondary-foreground);
+  font-family: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1ECE6;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D9D0C5;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C4B8A9;
+}
+
+/* Card glassmorphism and subtle elevation */
+.sleek-card {
+  background: #FFFFFF;
+  border: 1px solid #E8E2D9;
+  box-shadow: 0 4px 20px -4px rgba(43, 36, 31, 0.04), 0 2px 6px -2px rgba(43, 36, 31, 0.02);
+  border-radius: 1.25rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sleek-card:hover {
+  border-color: #D6CCC0;
+  box-shadow: 0 12px 28px -6px rgba(43, 36, 31, 0.08), 0 4px 12px -4px rgba(43, 36, 31, 0.04);
+  transform: translateY(-1px);
+}
+
+/* Badge pills */
+.sleek-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* Primary Button */
+.sleek-btn-primary {
+  background: linear-gradient(135deg, #0F2C59 0%, #1E40AF 100%);
+  color: #FFFFFF;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 0.75rem;
+  border-radius: 0.875rem;
+  padding: 0.75rem 1.25rem;
+  box-shadow: 0 4px 14px 0 rgba(15, 44, 89, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.sleek-btn-primary:hover {
+  background: linear-gradient(135deg, #0B2247 0%, #1D3557 100%);
+  box-shadow: 0 6px 20px 0 rgba(15, 44, 89, 0.35);
+  transform: translateY(-1px);
+}
+
+.sleek-btn-secondary {
+  background: #EFE7DE;
+  color: #2B241F;
+  border: 1px solid #E2D7CB;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 0.875rem;
+  padding: 0.75rem 1.25rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.sleek-btn-secondary:hover {
+  background: #E5DACD;
+  border-color: #D6C7B7;
+  color: #1F1915;
+}
