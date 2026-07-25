@@ -2,21 +2,16 @@ import axios from 'axios';
 
 const getApiBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) {
-    let url = process.env.NEXT_PUBLIC_API_URL.trim();
-    if (url === '/' || url === '') return '';
-    if (!url.startsWith('http') && !url.startsWith('/')) {
-      if (!url.includes('.')) {
-        url = `https://${url}.onrender.com`;
-      } else {
-        url = `https://${url}`;
-      }
+    const envUrl = process.env.NEXT_PUBLIC_API_URL.trim();
+    if (envUrl && envUrl !== '/' && !envUrl.includes('ai-resume-analyzer-backend.onrender.com')) {
+      return envUrl;
     }
-    return url;
   }
+
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    if (hostname.includes('onrender.com') || hostname.includes('render.com')) {
-      return 'https://ai-resume-analyzer-backend.onrender.com';
+    if (hostname.includes('onrender.com') || hostname.includes('render.com') || hostname.includes('vercel.app')) {
+      return '';
     }
     if (hostname.includes('loca.lt') || hostname.includes('ngrok') || hostname.includes('tunnel')) {
       return 'https://plain-readers-make.loca.lt';
