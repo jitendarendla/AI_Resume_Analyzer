@@ -10,8 +10,11 @@ from app.core.middleware import SecurityHeadersMiddleware
 
 from app.routers import auth, upload, analysis, reports, admin
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+# Safely create database tables on startup
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"[WARNING] Database table creation notice: {e}")
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -29,7 +32,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Security Headers
 app.add_middleware(SecurityHeadersMiddleware)
 
-# Public Remote Test Tunnel CORS Middleware
+# Public CORS Middleware for Render & Frontend Integration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -60,6 +63,10 @@ def root():
         "docs": "/docs"
     }
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": settings.PROJECT_NAME,
+        "version": settings.VERSION
+    }
