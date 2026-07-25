@@ -58,7 +58,7 @@ services:
         fromService:
           type: web
           name: ai-resume-analyzer-backend
-          property: url
+          property: host
 
 # -------------------------------------------------------------
 # 3. PostgreSQL Database
@@ -66,6 +66,6 @@ services:
 databases:
   - name: ai-resume-analyzer-db
     databaseName: resume_analyzer_db
-    user: postgres
+    user: resume_user
     region: oregon
     plan: free
