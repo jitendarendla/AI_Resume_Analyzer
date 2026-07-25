@@ -332,7 +332,6 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between border-b border-[#F1ECE6] pb-3">
                   <div>
                     <h3 className="text-lg font-black text-[#2B241F]">Change Password</h3>
-                    <p className="text-[11px] font-semibold text-[#60534A]">Check your real email inbox for the 6-digit verification code</p>
                   </div>
                   <button onClick={() => setIsPassOpen(false)} className="text-[#8C7E72] hover:text-[#2B241F]">
                     <X className="w-5 h-5" />
@@ -357,7 +356,7 @@ export default function ProfilePage() {
                 {otpStep === 'send_otp' && (
                   <form onSubmit={handleSendOTP} className="space-y-4 text-xs">
                     <div>
-                      <label className="block text-[#2B241F] font-black uppercase tracking-wider mb-2">Work Email to Verify</label>
+                      <label className="block text-[#2B241F] font-black uppercase tracking-wider mb-2">Verify Email</label>
                       <div className="relative">
                         <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
                         <input

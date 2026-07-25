@@ -100,7 +100,6 @@ export default function ForgotPasswordPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-black text-[#2B241F] tracking-tight">Reset Password</h1>
-            <p className="text-xs font-semibold text-[#60534A] mt-1">Check your real email inbox for the 6-digit OTP code</p>
           </div>
         </div>
 
@@ -122,7 +121,7 @@ export default function ForgotPasswordPage() {
         {step === 'send_otp' && (
           <form onSubmit={handleSendOTP} className="space-y-4 text-xs">
             <div>
-              <label className="block text-[#2B241F] font-black uppercase tracking-wider mb-2">Registered Work Email</label>
+              <label className="block text-[#2B241F] font-black uppercase tracking-wider mb-2">Verify Email</label>
               <div className="relative">
                 <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
                 <input
