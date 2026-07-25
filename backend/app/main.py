@@ -32,10 +32,16 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Security Headers
 app.add_middleware(SecurityHeadersMiddleware)
 
-# Public CORS Middleware for Render & Frontend Integration
+# Public CORS Middleware with Origin Regex matching for Render & Local dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://ai-resume-analyzer-frontend.onrender.com",
+        "https://ai-resume-analyzer-backend.onrender.com"
+    ],
+    allow_origin_regex=r"https://.*\.onrender\.com|http://localhost:\d+|http://127\.0\.0\.1:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
