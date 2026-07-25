@@ -99,18 +99,9 @@ export default function ForgotPasswordPage() {
             </div>
           </Link>
           <div>
-            <h1 className="text-2xl font-black text-[#2B241F] tracking-tight">Forgot Password</h1>
+            <h1 className="text-2xl font-black text-[#2B241F] tracking-tight">Reset Password</h1>
             <p className="text-xs font-semibold text-[#60534A] mt-1">Check your real email inbox for the 6-digit OTP code</p>
           </div>
-        </div>
-
-        {/* Progress Step Bar */}
-        <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase text-[#60534A]">
-          <span className={`px-2.5 py-1 rounded-full ${step === 'send_otp' ? 'bg-[#0047AB] text-white' : 'bg-[#EFE7DE] text-[#0F2C59]'}`}>1. Send OTP</span>
-          <span>→</span>
-          <span className={`px-2.5 py-1 rounded-full ${step === 'verify_otp' ? 'bg-[#0047AB] text-white' : 'bg-[#EFE7DE] text-[#60534A]'}`}>2. Verify OTP</span>
-          <span>→</span>
-          <span className={`px-2.5 py-1 rounded-full ${step === 'new_password' ? 'bg-[#0047AB] text-white' : 'bg-[#EFE7DE] text-[#60534A]'}`}>3. Reset Password</span>
         </div>
 
         {message && (

@@ -331,21 +331,12 @@ export default function ProfilePage() {
               <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-[#E8E2D9] text-[#2B241F] space-y-6">
                 <div className="flex items-center justify-between border-b border-[#F1ECE6] pb-3">
                   <div>
-                    <h3 className="text-lg font-black text-[#2B241F]">Email Verification & Password Change</h3>
+                    <h3 className="text-lg font-black text-[#2B241F]">Change Password</h3>
                     <p className="text-[11px] font-semibold text-[#60534A]">Check your real email inbox for the 6-digit verification code</p>
                   </div>
                   <button onClick={() => setIsPassOpen(false)} className="text-[#8C7E72] hover:text-[#2B241F]">
                     <X className="w-5 h-5" />
                   </button>
-                </div>
-
-                {/* Progress Step Bar */}
-                <div className="flex items-center gap-2 text-[11px] font-black uppercase text-[#60534A]">
-                  <span className={`px-2.5 py-1 rounded-full ${otpStep === 'send_otp' ? 'bg-[#0047AB] text-white' : 'bg-[#EFE7DE] text-[#0F2C59]'}`}>1. Send OTP</span>
-                  <span>→</span>
-                  <span className={`px-2.5 py-1 rounded-full ${otpStep === 'enter_otp' ? 'bg-[#0047AB] text-white' : isEmailVerified ? 'bg-[#EAF5EF] text-[#1E6B43]' : 'bg-[#EFE7DE] text-[#60534A]'}`}>2. Verify OTP</span>
-                  <span>→</span>
-                  <span className={`px-2.5 py-1 rounded-full ${otpStep === 'new_password' ? 'bg-[#0047AB] text-white' : 'bg-[#EFE7DE] text-[#60534A]'}`}>3. New Password</span>
                 </div>
 
                 {passErr && (
