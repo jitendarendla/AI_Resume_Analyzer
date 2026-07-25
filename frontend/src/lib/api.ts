@@ -18,7 +18,7 @@ const getApiBaseUrl = () => {
         const backendHost = hostname.replace('-frontend', '-backend');
         return `https://${backendHost}`;
       }
-      return `https://${hostname}`;
+      return 'https://ai-resume-analyzer-backend.onrender.com';
     }
     if (hostname.includes('loca.lt') || hostname.includes('ngrok') || hostname.includes('tunnel')) {
       return 'https://plain-readers-make.loca.lt';
