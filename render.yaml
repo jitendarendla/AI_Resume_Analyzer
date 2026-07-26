@@ -42,7 +42,7 @@ services:
       - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
         value: pk_test_bGVuaWVudC1sZW9wYXJkLTkxLmNsZXJrLmFjY291bnRzLmRldiQ
       - key: CLERK_SECRET_KEY
-        sync: false
+        value: sk_test_CopbVJtpTVScRf9TOcIKdegsJp9TuhRLVZvYEVFyKH
       - key: NEXT_PUBLIC_API_URL
         fromService:
           type: web
