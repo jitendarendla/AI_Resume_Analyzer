@@ -1,5 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&family=JetBrains+Mono:wght@500;700;800&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Sora', 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
 
 :root {
   --bg-elevated: #F8F5F1;
@@ -15,17 +21,32 @@
   --border-color: #E8E2D9;
 }
 
+* {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
 body {
   background-color: var(--bg-elevated);
   color: var(--secondary-foreground);
-  font-family: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Outfit', sans-serif;
-  letter-spacing: -0.02em;
+/* Stylish Sora Font for Headings, Brand Headers & Buttons */
+h1, h2, h3, h4, h5, h6, .font-heading, .font-display, button, .sleek-btn-primary {
+  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif !important;
+  letter-spacing: -0.025em;
+}
+
+/* Sharp Plus Jakarta Sans Font for UI Forms & Controls */
+input, select, textarea, label {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+/* JetBrains Mono for Percentages, Scores & Metrics */
+.font-mono, .match-score, .metric-number {
+  font-family: 'JetBrains Mono', monospace !important;
 }
 
 /* Custom Sleek Scrollbar */
@@ -58,65 +79,54 @@ h1, h2, h3, h4, h5, h6 {
 
 .sleek-card:hover {
   border-color: #D6CCC0;
-  box-shadow: 0 12px 28px -6px rgba(43, 36, 31, 0.08), 0 4px 12px -4px rgba(43, 36, 31, 0.04);
-  transform: translateY(-1px);
+  box-shadow: 0 8px 30px -4px rgba(43, 36, 31, 0.08), 0 4px 12px -2px rgba(43, 36, 31, 0.04);
 }
 
-/* Badge pills */
-.sleek-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.025em;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-}
-
-/* Primary Button */
+/* Primary Action Buttons */
 .sleek-btn-primary {
-  background: linear-gradient(135deg, #0F2C59 0%, #1E40AF 100%);
+  background: linear-gradient(135deg, #0F2C59 0%, #0047AB 100%);
   color: #FFFFFF;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif !important;
   font-weight: 800;
-  font-size: 0.75rem;
   border-radius: 0.875rem;
-  padding: 0.75rem 1.25rem;
-  box-shadow: 0 4px 14px 0 rgba(15, 44, 89, 0.25);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0.625rem 1.25rem;
+  transition: all 0.2s ease;
   display: inline-flex;
-  align-items: center;
+  items-center: center;
   justify-content: center;
   gap: 0.5rem;
-  cursor: pointer;
+  box-shadow: 0 4px 14px 0 rgba(0, 71, 171, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .sleek-btn-primary:hover {
-  background: linear-gradient(135deg, #0B2247 0%, #1D3557 100%);
-  box-shadow: 0 6px 20px 0 rgba(15, 44, 89, 0.35);
+  background: linear-gradient(135deg, #133870 0%, #0056D6 100%);
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px 0 rgba(0, 71, 171, 0.35);
 }
 
+.sleek-btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Secondary Buttons */
 .sleek-btn-secondary {
   background: #EFE7DE;
-  color: #2B241F;
-  border: 1px solid #E2D7CB;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
-  font-size: 0.75rem;
+  color: #0F2C59;
+  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif !important;
+  font-weight: 800;
   border-radius: 0.875rem;
-  padding: 0.75rem 1.25rem;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0.625rem 1.25rem;
+  transition: all 0.2s ease;
   display: inline-flex;
-  align-items: center;
+  items-center: center;
   justify-content: center;
   gap: 0.5rem;
-  cursor: pointer;
+  border: 1px solid #E2D7CB;
 }
 
 .sleek-btn-secondary:hover {
-  background: #E5DACD;
-  border-color: #D6C7B7;
-  color: #1F1915;
+  background: #E6DCF2;
+  color: #0F2C59;
+  border-color: #D4C6CE;
 }
