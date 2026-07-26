@@ -41,22 +41,24 @@ def get_current_recruiter(
     if not recruiter_id:
         raise credentials_exception
 
-    # 3. Fetch or auto-provision Recruiter record in Database
-    recruiter = db.query(Recruiter).filter(Recruiter.id == recruiter_id).first()
+    # 3. Fetch or auto-provision UNIQUE isolated Recruiter record for this specific user
+    recruiter = db.query(Recruiter).filter(
+        (Recruiter.id == recruiter_id) | (Recruiter.email == recruiter_id)
+    ).first()
+
     if not recruiter:
-        # Check fallback recruiter
-        recruiter = db.query(Recruiter).first()
-        if not recruiter:
-            recruiter = Recruiter(
-                id=recruiter_id,
-                email="recruiter@company.com",
-                name="Recruiter User",
-                hashed_password=get_password_hash("ClerkSecurePass123!"),
-                is_admin=True
-            )
-            db.add(recruiter)
-            db.commit()
-            db.refresh(recruiter)
+        user_email = recruiter_id if "@" in recruiter_id else f"{recruiter_id}@clerk.user"
+        recruiter = Recruiter(
+            id=recruiter_id,
+            email=user_email,
+            name="Recruiter User",
+            company="Recruitment Agency",
+            hashed_password=get_password_hash("ClerkSecurePass123!"),
+            is_admin=False
+        )
+        db.add(recruiter)
+        db.commit()
+        db.refresh(recruiter)
 
     return recruiter
 
