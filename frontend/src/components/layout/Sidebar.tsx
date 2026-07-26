@@ -50,8 +50,10 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
     >
       <div>
         {/* Header Branding */}
-        <div className="h-20 flex items-center justify-between px-4 border-b border-[#2B231D] bg-[#140F0C]">
-          <Link href="/dashboard" className="flex items-center gap-3 overflow-hidden">
+        <div className={`h-20 flex items-center border-b border-[#2B231D] bg-[#140F0C] transition-all relative ${
+          collapsed ? 'justify-center px-2' : 'justify-between px-4'
+        }`}>
+          <Link href="/dashboard" className="flex items-center gap-3 shrink-0">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0F2C59] via-[#0047AB] to-[#2563EB] p-1 flex items-center justify-center shrink-0 shadow-lg border border-blue-400/30">
               <img
                 src="/logo.png"
@@ -73,7 +75,10 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           <button
             onClick={() => setCollapsed(!collapsed)}
             suppressHydrationWarning
-            className="p-1.5 rounded-xl bg-[#241D18] hover:bg-[#332A23] text-[#A3968A] hover:text-white transition-all border border-[#3A3027] shrink-0"
+            title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            className={`p-1.5 rounded-xl bg-[#241D18] hover:bg-[#332A23] text-[#A3968A] hover:text-white transition-all border border-[#3A3027] shrink-0 ${
+              collapsed ? 'absolute -right-3 top-1/2 -translate-y-1/2 z-50 shadow-md bg-[#140F0C]' : ''
+            }`}
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
