@@ -49,54 +49,50 @@ export default function CandidatesPage() {
       const names = Array.from(new Set(history.map((h: any) => h.report_name).filter(Boolean))) as string[];
       setAvailableFolders(['All Folders', ...names]);
     } catch (e) {
-      console.error('Failed to fetch folder list', e);
+      console.error(e);
     }
   };
 
   const fetchCandidates = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/analysis/candidates', {
-        params: {
-          search,
-          report_name: selectedFolder,
-          min_ats_score: minAts,
-          sort_by: sortBy,
-          sort_order: sortOrder,
-          page,
-          limit: 15,
-        },
-      });
-      setCandidates(res.data.candidates || []);
-      setTotalPages(res.data.total_pages || Math.ceil((res.data.total || 0) / 15) || 1);
-      setTotalCount(res.data.total || res.data.total_count || 0);
-    } catch (e) {
-      console.error(e);
+      const params: any = {
+        page,
+        limit: 10,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+      };
+      if (search) params.search = search;
+      if (minAts > 0) params.min_ats = minAts;
+      if (selectedFolder && selectedFolder !== 'All Folders') {
+        params.folder_name = selectedFolder;
+      }
+
+      const response = await api.get('/api/analysis/candidates', { params });
+      setCandidates(response.data.candidates || []);
+      setTotalPages(response.data.total_pages || 1);
+      setTotalCount(response.data.total_count || 0);
+    } catch (err) {
+      console.error('Failed to fetch candidates', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const getScoreBadge = (score: number) => {
-    if (score >= 80) return <span className="px-2.5 py-1 rounded-full bg-[#EAF5EF] border border-[#D4E8DC] text-[#1E6B43] font-black text-xs">High ({score}%)</span>;
-    if (score >= 60) return <span className="px-2.5 py-1 rounded-full bg-[#FEF3C7] border border-[#FDE68A] text-[#92400E] font-black text-xs">Medium ({score}%)</span>;
-    return <span className="px-2.5 py-1 rounded-full bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] font-black text-xs">Low ({score}%)</span>;
-  };
-
   return (
     <div className="min-h-screen bg-[#F8F5F1] text-[#2B241F] flex font-sans" suppressHydrationWarning>
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-64'}`}>
-        <Navbar collapsed={collapsed} searchQuery={search} setSearchQuery={setSearch} />
+      <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-20 md:ml-64'}`}>
+        <Navbar collapsed={collapsed} />
 
-        <main className="pt-20 p-8 space-y-6 max-w-7xl mx-auto">
+        <main className="pt-20 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
           {/* Page Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
             <div>
               <div className="flex items-center gap-2 text-[#0047AB] font-bold text-xs tracking-wider uppercase mb-1">
                 <Users className="w-4 h-4" /> Candidate Analysis Engine
               </div>
-              <h1 className="text-2xl font-black text-[#2B241F]">Candidates Ranking & JD Match Hub</h1>
+              <h1 className="text-xl sm:text-2xl font-black text-[#2B241F]">Candidates Ranking & JD Match Hub</h1>
               <p className="text-xs font-semibold text-[#60534A]">Search, filter, and inspect parsed candidate dossiers folder-wise</p>
             </div>
           </div>
@@ -139,17 +135,17 @@ export default function CandidatesPage() {
                 </select>
               </div>
 
-              {/* Min ATS Score */}
-              <div className="flex items-center gap-2 bg-[#FAF6F1] border border-[#E2D7CB] rounded-xl px-3 py-2 text-xs font-bold text-[#60534A]">
-                <Filter className="w-3.5 h-3.5 text-[#8C7E72]" />
-                <span>Min ATS:</span>
+              {/* Min ATS Filter */}
+              <div className="flex items-center gap-2 bg-[#FAF6F1] border border-[#E2D7CB] rounded-xl px-3 py-2">
+                <Filter className="w-4 h-4 text-[#0047AB] shrink-0" />
+                <span className="text-xs text-[#60534A] font-bold hidden sm:inline">Min ATS:</span>
                 <select
                   value={minAts}
                   onChange={(e) => {
                     setMinAts(Number(e.target.value));
                     setPage(1);
                   }}
-                  className="bg-transparent font-black focus:outline-none text-[#2B241F]"
+                  className="bg-transparent text-xs text-[#2B241F] font-black focus:outline-none cursor-pointer"
                 >
                   <option value={0}>All Scores</option>
                   <option value={50}>50%+</option>
@@ -158,92 +154,109 @@ export default function CandidatesPage() {
                 </select>
               </div>
 
-              {/* Sort dropdown */}
-              <div className="flex items-center gap-2 bg-[#FAF6F1] border border-[#E2D7CB] rounded-xl px-3 py-2 text-xs font-bold text-[#60534A]">
-                <ArrowUpDown className="w-3.5 h-3.5 text-[#8C7E72]" />
+              {/* Sort By Dropdown */}
+              <div className="flex items-center gap-2 bg-[#FAF6F1] border border-[#E2D7CB] rounded-xl px-3 py-2">
+                <ArrowUpDown className="w-4 h-4 text-[#1E6B43] shrink-0" />
                 <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-transparent font-black focus:outline-none text-[#2B241F]"
+                  value={`${sortBy}-${sortOrder}`}
+                  onChange={(e) => {
+                    const [sb, so] = e.target.value.split('-');
+                    setSortBy(sb);
+                    setSortOrder(so as 'asc' | 'desc');
+                  }}
+                  className="bg-transparent text-xs text-[#2B241F] font-black focus:outline-none cursor-pointer"
                 >
-                  <option value="ats_score">Sort by ATS Score</option>
-                  <option value="name">Sort by Name</option>
-                  <option value="experience">Sort by Experience</option>
+                  <option value="ats_score-desc">ATS Score (High to Low)</option>
+                  <option value="ats_score-asc">ATS Score (Low to High)</option>
+                  <option value="experience_years-desc">Experience (High to Low)</option>
+                  <option value="name-asc">Name (A-Z)</option>
                 </select>
               </div>
             </div>
           </div>
 
-          {/* Candidates Data Table */}
-          <div className="p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm overflow-hidden">
+          {/* Candidates Table */}
+          <div className="bg-white border border-[#E8E2D9] rounded-3xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-[#2B241F]">
-                <thead className="text-xs uppercase bg-[#F5EFEB] text-[#60534A] border-b border-[#E8E2D9] font-black">
-                  <tr>
-                    <th className="py-3.5 px-4">Candidate Name</th>
-                    <th className="py-3.5 px-4">Contact Info</th>
-                    <th className="py-3.5 px-4">Experience</th>
-                    <th className="py-3.5 px-4">Skills Extracted</th>
-                    <th className="py-3.5 px-4">ATS Match</th>
-                    <th className="py-3.5 px-4 text-right">Action</th>
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="bg-[#FAF6F1] border-b border-[#E8E2D9] text-[11px] font-black uppercase text-[#60534A] tracking-wider">
+                    <th className="p-4">Rank / Candidate</th>
+                    <th className="p-4">Folder Batch</th>
+                    <th className="p-4 text-center">ATS Match Score</th>
+                    <th className="p-4">Experience & Education</th>
+                    <th className="p-4">Key Skills</th>
+                    <th className="p-4 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#F1ECE6] font-semibold text-xs">
+                <tbody className="divide-y divide-[#E8E2D9] text-xs font-semibold text-[#2B241F]">
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-[#60534A] font-bold">
-                        Loading candidate evaluations...
+                      <td colSpan={6} className="p-12 text-center text-xs font-bold text-[#8C7E72]">
+                        <div className="w-8 h-8 border-4 border-[#0047AB] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                        Loading candidate records...
                       </td>
                     </tr>
                   ) : candidates.length > 0 ? (
-                    candidates.map((cand) => {
-                      const match = cand.match || {};
-                      const score = match.ats_score || 0;
-                      const candidateName = cand.name || cand.full_name || 'Candidate Record';
-                      return (
-                        <tr key={cand.id} className="hover:bg-[#FAF6F1] transition-colors">
-                          <td className="py-4 px-4">
-                            <div className="font-black text-[#2B241F]">{candidateName}</div>
-                            <div className="text-[11px] text-[#8C7E72] font-mono mt-0.5">{cand.file_name}</div>
-                          </td>
-                          <td className="py-4 px-4 text-[#60534A]">
-                            <div>{cand.email || 'N/A'}</div>
-                            <div className="text-[#8C7E72] text-[11px]">{cand.phone || cand.location || ''}</div>
-                          </td>
-                          <td className="py-4 px-4 font-bold text-[#2B241F]">{cand.experience_years || 0} Yrs</td>
-                          <td className="py-4 px-4 max-w-xs">
-                            <div className="flex flex-wrap gap-1">
-                              {cand.skills && cand.skills.length > 0 ? (
-                                cand.skills.slice(0, 4).map((sk: string, i: number) => (
-                                  <span key={i} className="px-2 py-0.5 rounded-md bg-[#F5EFEB] border border-[#E2D7CB] text-[11px] font-bold text-[#2B241F]">
-                                    {sk}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-[#9A8D80]">No skills listed</span>
-                              )}
-                              {cand.skills && cand.skills.length > 4 && (
-                                <span className="text-[10px] text-[#8C7E72] font-bold pt-0.5">+{cand.skills.length - 4} more</span>
-                              )}
+                    candidates.map((candidate, idx) => (
+                      <tr key={candidate.id} className="hover:bg-[#FAF6F1]/60 transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <span className="w-7 h-7 rounded-xl bg-blue-50 text-[#0047AB] flex items-center justify-center font-black text-xs shrink-0 border border-blue-100 font-mono">
+                              #{idx + 1 + (page - 1) * 10}
+                            </span>
+                            <div>
+                              <p className="font-bold text-[#0F2C59] text-sm">{candidate.name}</p>
+                              <p className="text-[11px] text-[#60534A] font-medium">{candidate.email || 'No email specified'}</p>
                             </div>
-                          </td>
-                          <td className="py-4 px-4">{getScoreBadge(score)}</td>
-                          <td className="py-4 px-4 text-right">
-                            <button
-                              onClick={() => setSelectedCandidate(cand)}
-                              className="px-3.5 py-1.5 rounded-xl bg-[#EFE7DE] border border-[#E2D7CB] text-[#0F2C59] font-black text-xs hover:bg-[#E5DACD] transition-all flex items-center gap-1 ml-auto"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>View Dossier</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
+                          </div>
+                        </td>
+
+                        <td className="p-4 font-bold text-[#7A3E65]">
+                          <span className="px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-100 text-[11px]">
+                            {candidate.folder_name || 'General Batch'}
+                          </span>
+                        </td>
+
+                        <td className="p-4 text-center">
+                          <span className="px-3 py-1.5 rounded-full font-mono font-black text-xs bg-emerald-50 text-[#1E6B43] border border-emerald-200">
+                            {candidate.ats_score}%
+                          </span>
+                        </td>
+
+                        <td className="p-4">
+                          <p className="font-bold">{candidate.experience_years} Years Exp</p>
+                          <p className="text-[11px] text-[#60534A] truncate max-w-[180px]">{candidate.education || 'Degree Not Specified'}</p>
+                        </td>
+
+                        <td className="p-4">
+                          <div className="flex flex-wrap gap-1 max-w-[220px]">
+                            {candidate.skills && candidate.skills.slice(0, 3).map((sk: string, sIdx: number) => (
+                              <span key={sIdx} className="px-2 py-0.5 rounded-md bg-[#FAF6F1] border border-[#E2D7CB] text-[10px] font-bold text-[#60534A]">
+                                {sk}
+                              </span>
+                            ))}
+                            {candidate.skills && candidate.skills.length > 3 && (
+                              <span className="text-[10px] font-black text-[#0047AB] self-center">+{candidate.skills.length - 3}</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="p-4 text-right">
+                          <button
+                            onClick={() => setSelectedCandidate(candidate)}
+                            className="sleek-btn-secondary text-xs px-3 py-1.5 cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>View Dossier</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-[#60534A] font-semibold">
-                        No candidates found matching criteria.
+                      <td colSpan={6} className="p-12 text-center text-xs font-bold text-[#8C7E72] italic">
+                        No candidates found matching filter criteria.
                       </td>
                     </tr>
                   )}
@@ -251,22 +264,22 @@ export default function CandidatesPage() {
               </table>
             </div>
 
-            {/* Pagination Controls */}
+            {/* Pagination Bar */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-[#F1ECE6] pt-4 mt-4 text-xs font-semibold text-[#60534A]">
-                <span>Showing page {page} of {totalPages} ({totalCount} total candidates)</span>
+              <div className="p-4 bg-[#FAF6F1] border-t border-[#E8E2D9] flex items-center justify-between text-xs font-bold text-[#60534A]">
+                <span>Showing Page {page} of {totalPages} ({totalCount} Total Candidates)</span>
                 <div className="flex items-center gap-2">
                   <button
-                    disabled={page <= 1}
-                    onClick={() => setPage(page - 1)}
-                    className="px-3 py-1 rounded-xl bg-[#F5EFEB] border border-[#E2D7CB] disabled:opacity-50 font-bold"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                    className="px-3 py-1.5 rounded-xl bg-white border border-[#E2D7CB] disabled:opacity-50 font-black cursor-pointer"
                   >
                     Previous
                   </button>
                   <button
-                    disabled={page >= totalPages}
-                    onClick={() => setPage(page + 1)}
-                    className="px-3 py-1 rounded-xl bg-[#F5EFEB] border border-[#E2D7CB] disabled:opacity-50 font-bold"
+                    disabled={page === totalPages}
+                    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                    className="px-3 py-1.5 rounded-xl bg-white border border-[#E2D7CB] disabled:opacity-50 font-black cursor-pointer"
                   >
                     Next
                   </button>
@@ -277,7 +290,7 @@ export default function CandidatesPage() {
         </main>
       </div>
 
-      {/* Candidate Detail Modal */}
+      {/* Candidate Dossier Detail Modal */}
       {selectedCandidate && (
         <CandidateModal
           candidate={selectedCandidate}

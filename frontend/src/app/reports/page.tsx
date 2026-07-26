@@ -58,45 +58,39 @@ export default function ReportsPage() {
     if (!confirm('Are you sure you want to delete this generated Excel report?')) return;
     try {
       await api.delete(`/api/reports/export/${identifier}`);
-      fetchUploadHistory();
-    } catch (e) {
-      console.error(e);
+      setHistory((prev) => prev.filter((item) => (item.session_id || item.id) !== identifier));
+    } catch (e: any) {
+      alert(e.response?.data?.detail || 'Failed to delete report.');
     }
   };
 
-  // Real-time Search Engine filtering
-  const filteredHistory = history.filter((item) => {
-    const query = searchQuery.toLowerCase().trim();
-    if (!query) return true;
-    const nameMatch = (item.report_name || '').toLowerCase().includes(query);
-    const dateMatch = new Date(item.created_at).toLocaleString().toLowerCase().includes(query);
-    const countMatch = `${item.resume_count || ''}`.includes(query);
-    return nameMatch || dateMatch || countMatch;
-  });
+  const filteredHistory = history.filter((item) =>
+    item.report_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-[#F8F5F1] text-[#2B241F] flex font-sans" suppressHydrationWarning>
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-64'}`}>
+      <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-20 md:ml-64'}`}>
         <Navbar collapsed={collapsed} />
 
-        <main className="pt-20 p-8 space-y-8 max-w-5xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm">
+        <main className="pt-20 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
             <div>
               <div className="flex items-center gap-2 text-[#0047AB] font-bold text-xs tracking-wider uppercase mb-1">
-                <FileSpreadsheet className="w-4 h-4" /> Excel Report Engine
+                <FileSpreadsheet className="w-4 h-4" /> Excel Report Exports
               </div>
-              <h1 className="text-2xl font-black text-[#2B241F]">Excel Candidate Export Center</h1>
-              <p className="text-sm font-semibold text-[#60534A]">Download and manage formatted Excel reports with full candidate details</p>
+              <h1 className="text-xl sm:text-2xl font-black text-[#2B241F]">Excel Candidate Reports Library</h1>
+              <p className="text-xs font-semibold text-[#60534A]">Download structured candidate ranking sheets & ATS matching reports</p>
             </div>
 
-            {/* Realtime Search Engine Bar */}
-            <div className="relative w-full md:w-80">
+            {/* Real-time Search */}
+            <div className="relative w-full sm:w-64">
               <Search className="w-4 h-4 text-[#8C7E72] absolute left-3.5 top-3" />
               <input
                 type="text"
-                suppressHydrationWarning
-                placeholder="Search reports by folder or date..."
+                placeholder="Search report title..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAF6F1] border border-[#E2D7CB] text-xs text-[#2B241F] placeholder-[#9A8D80] focus:outline-none focus:border-[#0F2C59] font-bold shadow-sm transition-all"
@@ -104,64 +98,80 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-[#F1ECE6] pb-4">
-              <h3 className="text-lg font-black text-[#2B241F]">Available Excel Reports</h3>
-              <span className="text-xs font-bold text-[#60534A]">{filteredHistory.length} Reports Found</span>
-            </div>
+          {/* Reports Table */}
+          <div className="bg-white border border-[#E8E2D9] rounded-3xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[600px]">
+                <thead>
+                  <tr className="bg-[#FAF6F1] border-b border-[#E8E2D9] text-[11px] font-black uppercase text-[#60534A] tracking-wider">
+                    <th className="p-4">Folder / Report Title</th>
+                    <th className="p-4">Evaluated Resumes</th>
+                    <th className="p-4">Created Date</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E8E2D9] text-xs font-semibold text-[#2B241F]">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={4} className="p-12 text-center text-xs font-bold text-[#8C7E72]">
+                        <div className="w-8 h-8 border-4 border-[#0047AB] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                        Loading reports library...
+                      </td>
+                    </tr>
+                  ) : filteredHistory.length > 0 ? (
+                    filteredHistory.map((item) => (
+                      <tr key={item.id} className="hover:bg-[#FAF6F1]/60 transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#7A3E65] flex items-center justify-center font-black shrink-0 border border-purple-100 shadow-sm">
+                              <FileSpreadsheet className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-[#0F2C59] text-sm">{item.report_name}</p>
+                              <p className="text-[11px] text-[#60534A] font-medium">Excel Format (.xlsx)</p>
+                            </div>
+                          </div>
+                        </td>
 
-            <div className="space-y-3">
-              {loading ? (
-                <div className="py-12 text-center text-xs font-bold text-[#60534A]">
-                  Loading generated Excel reports...
-                </div>
-              ) : filteredHistory.length > 0 ? (
-                filteredHistory.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAF6F1] border border-[#E2D7CB] hover:border-[#D6CCC0] transition-all"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-11 h-11 rounded-2xl bg-[#EAF5EF] border border-[#D4E8DC] text-[#1E6B43] flex items-center justify-center font-bold shrink-0 shadow-sm">
-                        <FileSpreadsheet className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-black text-[#2B241F]">{item.report_name}</h4>
-                        <div className="flex items-center gap-3 text-[11px] font-semibold text-[#60534A] mt-0.5">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-[#8C7E72]" />
-                            {new Date(item.created_at).toLocaleString()}
-                          </span>
-                          <span>•</span>
-                          <span className="font-bold text-[#0F2C59]">{item.resume_count || 1} Candidate Resumes</span>
-                        </div>
-                      </div>
-                    </div>
+                        <td className="p-4 font-mono font-bold text-sm">
+                          {item.resume_count} Candidates
+                        </td>
 
-                    <div className="flex items-center gap-2 self-end sm:self-center">
-                      <button
-                        onClick={() => handleDownload(item.session_id || item.id, item.report_name)}
-                        className="px-4 py-2 rounded-xl bg-[#1E6B43] hover:bg-[#185937] text-white font-black text-xs shadow-sm flex items-center gap-1.5 transition-all"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download Excel</span>
-                      </button>
+                        <td className="p-4 text-[#60534A] flex items-center gap-1.5 pt-6">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                        </td>
 
-                      <button
-                        onClick={() => handleDeleteReport(item.id)}
-                        className="p-2 rounded-xl bg-white border border-[#E2D7CB] text-rose-600 hover:bg-rose-50 transition-colors"
-                        title="Delete Report"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-12 text-center text-xs font-semibold text-[#8C7E72]">
-                  No matching Excel reports found. Upload resumes to generate reports.
-                </div>
-              )}
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleDownload(item.session_id || item.id, item.report_name)}
+                              className="sleek-btn-primary text-xs px-3 py-1.5 cursor-pointer shadow-md"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Download Excel</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteReport(item.session_id || item.id)}
+                              className="p-2 rounded-xl bg-[#FAF6F1] hover:bg-rose-50 text-rose-600 transition-colors border border-[#E2D7CB]"
+                              title="Delete Generated Report"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="p-12 text-center text-xs font-bold text-[#8C7E72] italic">
+                        No generated Excel reports found. Upload resumes to generate reports!
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </main>

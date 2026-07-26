@@ -27,7 +27,15 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setCollapsed(true);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [setCollapsed]);
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },

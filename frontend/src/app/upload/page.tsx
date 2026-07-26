@@ -67,55 +67,73 @@ export default function UploadPage() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
-    if (e.dataTransfer.files) {
-      const dropped = Array.from(e.dataTransfer.files);
-      setFiles((prev) => [...prev, ...dropped]);
+
+    if (e.dataTransfer.items) {
+      const droppedFiles: File[] = [];
+      const items = Array.from(e.dataTransfer.items);
+
+      items.forEach((item) => {
+        if (item.kind === 'file') {
+          const file = item.getAsFile();
+          if (file) droppedFiles.push(file);
+        }
+      });
+
+      if (droppedFiles.length > 0) {
+        setFiles((prev) => [...prev, ...droppedFiles]);
+      }
+    } else if (e.dataTransfer.files) {
+      setFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files)]);
     }
   };
 
-  const pollStatus = (sessionId: string) => {
+  const pollStatus = async (sessionId: string) => {
     const interval = setInterval(async () => {
       try {
-        const statusRes = await api.get(`/api/upload/status/${sessionId}`);
-        const data = statusRes.data;
+        const res = await api.get(`/api/upload/status/${sessionId}`);
+        const data = res.data;
 
-        if (data.total_files > 0) {
-          const pct = Math.round((data.processed_files / data.total_files) * 100);
-          setProgress(pct);
-          setStatusMessage(`AI Processing Resumes: ${data.processed_files} / ${data.total_files} completed...`);
-        }
+        const total = data.total_files || 1;
+        const done = data.processed_files || 0;
+        const calculatedProgress = Math.min(Math.round((done / total) * 100), 99);
 
-        if (data.status?.toLowerCase() === 'completed' || (data.total_files > 0 && data.processed_files >= data.total_files)) {
+        setProgress(calculatedProgress);
+        setProcessedCount(done);
+
+        if (data.status === 'PROCESSING') {
+          setStatusMessage(`Processing resumes with AI models (${done}/${total})...`);
+        } else if (data.status === 'COMPLETED') {
           clearInterval(interval);
           setProgress(100);
+          setStatusMessage('Analysis complete! All candidate profiles extracted.');
           setUploading(false);
           setReanalyzing(false);
-          setProcessedCount(data.total_files || files.length);
           setShowSuccessModal(true);
+        } else if (data.status === 'FAILED') {
+          clearInterval(interval);
+          setUploading(false);
+          setReanalyzing(false);
+          alert('Processing failed. Please check file formats.');
         }
       } catch (err) {
-        clearInterval(interval);
-        setUploading(false);
-        setReanalyzing(false);
+        console.error('Polling error', err);
       }
-    }, 800);
+    }, 1500);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!reportName.trim()) {
-      alert('Please enter a Campaign / Report Title (Required).');
+      alert('Please enter a Campaign / Report Title.');
       return;
     }
-
     if (!jobDescription.trim()) {
-      alert('Please enter a target Job Description (Required).');
+      alert('Please enter or paste the target Job Description (JD).');
       return;
     }
-
     if (files.length === 0) {
-      alert('Please select at least 1 resume file to upload.');
+      alert('Please upload at least 1 candidate resume PDF or DOCX file.');
       return;
     }
 
@@ -180,7 +198,7 @@ export default function UploadPage() {
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
-      a.download = `${(reportName || 'Resume_Batch').replace(/ /g, '_')}_Report.xlsx`;
+      a.download = `${reportName.replace(/\s+/g, '_')}_Report.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -195,17 +213,17 @@ export default function UploadPage() {
   return (
     <div className="min-h-screen bg-[#F8F5F1] text-[#2B241F] flex font-sans" suppressHydrationWarning>
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-64'}`}>
+      <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-20 md:ml-64'}`}>
         <Navbar collapsed={collapsed} />
 
-        <main className="pt-20 p-8 space-y-6 max-w-5xl mx-auto">
+        <main className="pt-20 p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl mx-auto">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
             <div>
               <div className="flex items-center gap-2 text-[#0047AB] font-bold text-xs tracking-wider uppercase mb-1">
                 <UploadCloud className="w-4 h-4" /> Bulk Resume Processing Engine
               </div>
-              <h1 className="text-2xl font-black text-[#2B241F] tracking-tight">Upload & Evaluate Candidate Resumes</h1>
+              <h1 className="text-xl sm:text-2xl font-black text-[#2B241F] tracking-tight">Upload & Evaluate Candidate Resumes</h1>
               <p className="text-xs font-semibold text-[#60534A] mt-1">Extract ATS metrics, match skills against Job Description, and auto-export formatted reports</p>
             </div>
           </div>
@@ -213,7 +231,7 @@ export default function UploadPage() {
           {/* Upload Form */}
           <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Form Left Side */}
-            <div className="lg:col-span-2 p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-5">
+            <div className="lg:col-span-2 p-5 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-5">
               <div>
                 <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-2">
                   Folder / Report Title <span className="text-rose-500 font-bold">* (Required)</span>
@@ -249,72 +267,76 @@ export default function UploadPage() {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`p-8 rounded-3xl border-2 border-dashed transition-all text-center space-y-4 ${
-                  dragActive ? 'border-[#0F2C59] bg-[#EFE7DE]/50 scale-[1.01]' : 'border-[#E2D7CB] bg-[#FAF6F1]/50 hover:border-[#D6CCC0]'
+                className={`border-2 border-dashed rounded-3xl p-6 text-center transition-all ${
+                  dragActive ? 'border-[#0047AB] bg-blue-50/50' : 'border-[#E2D7CB] bg-[#FAF6F1]/50 hover:bg-[#FAF6F1]'
                 }`}
               >
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-[#EFE7DE] text-[#0F2C59] flex items-center justify-center border border-[#E2D7CB] shadow-sm">
-                  <UploadCloud className="w-7 h-7" />
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0047AB] flex items-center justify-center mx-auto mb-3 border border-blue-100 shadow-sm">
+                  <UploadCloud className="w-6 h-6" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-black text-[#2B241F]">Drag & Drop Resumes or Folders Here</h3>
-                  <p className="text-xs text-[#60534A] font-semibold mt-1">Supports PDF, DOCX, DOC, TXT (High concurrency batch processing)</p>
-                </div>
+                <p className="text-sm font-black text-[#2B241F]">Drag & Drop Resume Files or Folders Here</p>
+                <p className="text-xs font-medium text-[#60534A] mt-1 mb-4">Supports PDF & DOCX formats (Up to 100+ files per batch)</p>
 
-                <div className="flex items-center justify-center gap-3 pt-2">
-                  <label className="px-5 py-2.5 rounded-2xl bg-[#0F2C59] hover:bg-[#0B2247] text-white font-black text-xs cursor-pointer transition-all shadow-md">
-                    Select Files
-                    <input type="file" multiple accept=".pdf,.docx,.doc,.txt" onChange={handleFileChange} className="hidden" suppressHydrationWarning />
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <label className="sleek-btn-primary text-xs cursor-pointer">
+                    <span>Select Individual Files</span>
+                    <input
+                      type="file"
+                      multiple
+                      accept=".pdf,.docx,.doc"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
                   </label>
 
-                  <label className="px-5 py-2.5 rounded-2xl bg-[#EFE7DE] border border-[#E2D7CB] text-[#2B241F] font-black text-xs cursor-pointer hover:bg-[#E5DACD] transition-all">
-                    Select Folder
-                    {/* @ts-ignore */}
-                    <input type="file" webkitdirectory="" directory="" multiple onChange={handleFolderChange} className="hidden" suppressHydrationWarning />
+                  <label className="sleek-btn-secondary text-xs cursor-pointer">
+                    <span>Upload Entire Folder</span>
+                    <input
+                      type="file"
+                      // @ts-ignore
+                      webkitdirectory="true"
+                      directory="true"
+                      multiple
+                      onChange={handleFolderChange}
+                      className="hidden"
+                    />
                   </label>
                 </div>
               </div>
-            </div>
 
-            {/* Form Right Side: Queue & Actions */}
-            <div className="p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm flex flex-col justify-between space-y-4">
-              <div>
-                <div className="flex items-center justify-between border-b border-[#F1ECE6] pb-3 mb-3">
-                  <h3 className="text-sm font-black text-[#2B241F]">Upload Queue ({files.length})</h3>
-                  {files.length > 0 && (
-                    <button type="button" onClick={() => setFiles([])} className="text-xs text-rose-600 hover:underline font-bold">
+              {/* File List */}
+              {files.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-black text-[#2B241F]">
+                    <span>Queued Files ({files.length})</span>
+                    <button
+                      type="button"
+                      onClick={() => setFiles([])}
+                      className="text-rose-600 hover:underline"
+                    >
                       Clear All
                     </button>
-                  )}
-                </div>
-
-                <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
-                  {files.length > 0 ? (
-                    files.map((f, i) => (
-                      <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-[#FAF6F1] border border-[#E2D7CB] text-xs">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <FileText className="w-4 h-4 text-[#0F2C59] shrink-0" />
-                          <span className="truncate text-[#2B241F] font-extrabold">{f.name}</span>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto space-y-1.5 pr-2">
+                    {files.map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-[#FAF6F1] border border-[#E2D7CB] text-xs font-medium"
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <FileText className="w-4 h-4 text-[#0047AB] shrink-0" />
+                          <span className="truncate text-[#2B241F] font-semibold">{file.name}</span>
+                          <span className="text-[10px] text-[#60534A]">({(file.size / 1024).toFixed(1)} KB)</span>
                         </div>
-                        <button type="button" onClick={() => removeFile(i)} className="text-[#8C7E72] hover:text-rose-600 ml-2">
+                        <button
+                          type="button"
+                          onClick={() => removeFile(idx)}
+                          className="text-[#8C7E72] hover:text-rose-600 p-1"
+                        >
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                    ))
-                  ) : (
-                    <div className="py-12 text-center text-xs font-semibold text-[#8C7E72]">No files queued yet.</div>
-                  )}
-                </div>
-              </div>
-
-              {uploading && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-[#60534A]">
-                    <span>{statusMessage}</span>
-                    <span>{progress}%</span>
-                  </div>
-                  <div className="w-full bg-[#EFE7DE] rounded-full h-2.5 overflow-hidden">
-                    <div className="bg-[#0F2C59] h-2.5 transition-all duration-300" style={{ width: `${progress}%` }}></div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -322,95 +344,130 @@ export default function UploadPage() {
               <button
                 type="submit"
                 disabled={uploading || files.length === 0}
-                className="sleek-btn-primary w-full py-3.5"
+                className="sleek-btn-primary w-full text-xs font-black py-4 cursor-pointer disabled:opacity-50"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>{uploading ? 'Processing AI Extraction...' : 'Start AI Analysis'}</span>
+                {uploading ? (
+                  <span className="flex items-center gap-2 justify-center">
+                    <RotateCw className="w-4 h-4 animate-spin" />
+                    <span>Evaluating Candidate Resumes...</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2 justify-center">
+                    <Sparkles className="w-4 h-4 text-blue-200" />
+                    <span>Run AI Resume Evaluation Engine</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                )}
               </button>
             </div>
-          </form>
 
-          {/* Web App Themed Analysis Completion Modal */}
-          {showSuccessModal && (
-            <div className="fixed inset-0 z-50 bg-[#140F0C]/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-              <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-[#E8E2D9] text-[#2B241F] text-center space-y-6 transform transition-all duration-300 scale-100 relative overflow-hidden">
-                <div className="h-1.5 w-full bg-[#0F2C59] absolute top-0 left-0"></div>
-
-                {/* Styled Check Icon Header */}
-                <div className="w-16 h-16 bg-[#EAF5EF] text-[#1E6B43] rounded-2xl flex items-center justify-center mx-auto border border-[#D4E8DC] shadow-sm">
-                  <Check className="w-8 h-8" />
-                </div>
-
-                <div>
-                  <h3 className="text-2xl font-black text-[#2B241F] tracking-tight">Analysis Complete</h3>
-                  <p className="text-xs text-[#60534A] font-semibold mt-2 leading-relaxed">
-                    Successfully processed & evaluated <span className="font-black text-[#2B241F]">{processedCount} candidate resumes</span>. All ATS scores, skill matches, and exportable reports are ready.
-                  </p>
-                </div>
-
-                {/* Metric Summary Pills */}
-                <div className="p-4 rounded-2xl bg-[#FAF6F1] border border-[#E2D7CB] text-xs text-left grid grid-cols-2 gap-2">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C7E72] block">Report Title</span>
-                    <span className="font-black text-[#2B241F] truncate block mt-0.5" title={reportName || 'Resume Report'}>
-                      {reportName || 'Resume Report'}
-                    </span>
+            {/* Sidebar Guide */}
+            <div className="p-5 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-4 flex flex-col justify-between">
+              <div>
+                <h3 className="text-base font-black text-[#2B241F] mb-3">AI Resume Match Engine Guide</h3>
+                <div className="space-y-3 text-xs text-[#60534A]">
+                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-[#FAF6F1] border border-[#E8E2D9]">
+                    <Zap className="w-4 h-4 text-[#0047AB] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-[#2B241F]">High Concurrency Parsing</p>
+                      <p className="text-[11px]">Extracts skills, experience years, education & ATS match scores.</p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C7E72] block">Status</span>
-                    <span className="font-black text-[#1E6B43] block mt-0.5">100% Completed</span>
+
+                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-[#FAF6F1] border border-[#E8E2D9]">
+                    <FileSpreadsheet className="w-4 h-4 text-[#1E6B43] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-[#2B241F]">Auto Excel Generation</p>
+                      <p className="text-[11px]">Instant exportable Excel sheet with match percentages and rankings.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-[#FAF6F1] border border-[#E8E2D9]">
+                    <Users className="w-4 h-4 text-[#7A3E65] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-[#2B241F]">Folder-Wise Tracking</p>
+                      <p className="text-[11px]">All uploaded batches are stored by Folder Title for instant access.</p>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Action Buttons */}
-                <div className="space-y-3 pt-1">
-                  {/* Convert & Download Excel Sheet Button (Closes Popup) */}
-                  <button
-                    onClick={handleDownloadExcel}
-                    className="w-full py-3.5 px-4 rounded-2xl bg-[#1E6B43] hover:bg-[#185937] text-white font-black text-xs shadow-md shadow-emerald-900/20 flex items-center justify-center gap-2 transition-all"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Convert & Download Excel Sheet (.xlsx)</span>
-                  </button>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Re-Analyze Resumes Button */}
-                    <button
-                      onClick={handleReanalyze}
-                      disabled={reanalyzing}
-                      className="py-3 px-3 rounded-2xl bg-[#EFE7DE] hover:bg-[#E5DACD] text-[#2B241F] border border-[#E2D7CB] font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
-                    >
-                      <RotateCw className={`w-3.5 h-3.5 text-[#0F2C59] ${reanalyzing ? 'animate-spin' : ''}`} />
-                      <span>Re-Analyze Resumes</span>
-                    </button>
-
-                    {/* View Candidates Button */}
-                    <Link
-                      href="/candidates"
-                      className="py-3 px-3 rounded-2xl bg-[#0F2C59] hover:bg-[#0B2247] text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5 transition-all"
-                    >
-                      <Users className="w-3.5 h-3.5" />
-                      <span>View Candidates</span>
-                    </Link>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setShowSuccessModal(false);
-                    setFiles([]);
-                    setReportName('');
-                    setJobDescription('');
-                  }}
-                  className="text-xs text-[#8C7E72] hover:text-[#2B241F] font-bold pt-1 transition-colors block mx-auto"
-                >
-                  Close & Upload Another Batch
-                </button>
+              <div className="p-4 rounded-2xl bg-[#FAF6F1] border border-[#E8E2D9]">
+                <p className="text-[11px] font-bold text-[#2B241F] flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-[#0047AB]" />
+                  <span>Verified Supported Formats</span>
+                </p>
+                <p className="text-[10px] text-[#60534A] font-medium mt-0.5">.pdf, .docx, .doc (Unlimited files per folder)</p>
               </div>
             </div>
-          )}
+          </form>
         </main>
       </div>
+
+      {/* Progress & Success Modal */}
+      {uploading && (
+        <div className="fixed inset-0 z-50 bg-[#0F2C59]/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E8E2D9] rounded-3xl p-8 max-w-md w-full shadow-2xl text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-[#0047AB] flex items-center justify-center mx-auto border border-blue-100 shadow-md">
+              <RotateCw className="w-7 h-7 animate-spin" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-[#2B241F]">Processing Resumes with AI</h3>
+              <p className="text-xs font-bold text-[#60534A] mt-1">{statusMessage}</p>
+            </div>
+
+            <div className="w-full bg-[#FAF6F1] h-3 rounded-full overflow-hidden border border-[#E2D7CB]">
+              <div
+                className="bg-gradient-to-r from-[#0F2C59] to-[#0047AB] h-full transition-all duration-300 rounded-full"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+            <p className="text-xs font-mono font-black text-[#0047AB]">{progress}% Completed</p>
+          </div>
+        </div>
+      )}
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 bg-[#0F2C59]/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E8E2D9] rounded-3xl p-8 max-w-md w-full shadow-2xl text-center space-y-5 animate-in fade-in zoom-in">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-[#1E6B43] flex items-center justify-center mx-auto border border-emerald-100 shadow-md">
+              <CheckCircle className="w-8 h-8" />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-black text-[#2B241F]">Resume Processing Complete!</h3>
+              <p className="text-xs font-bold text-[#60534A] mt-1">
+                Successfully parsed <span className="text-[#1E6B43] font-mono font-black">{processedCount}</span> candidate profiles into <span className="text-[#0F2C59] font-black">{reportName}</span> folder.
+              </p>
+            </div>
+
+            <div className="space-y-2.5 pt-2">
+              <button
+                onClick={handleDownloadExcel}
+                className="sleek-btn-primary w-full text-xs font-black py-3.5 cursor-pointer shadow-lg"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Excel Report (.xlsx)</span>
+              </button>
+
+              <button
+                onClick={handleReanalyze}
+                className="sleek-btn-secondary w-full text-xs font-black py-3.5 cursor-pointer"
+              >
+                <RotateCw className="w-4 h-4" />
+                <span>Re-Analyze with New Requirements</span>
+              </button>
+
+              <Link
+                href={`/candidates?session_id=${currentSessionId}`}
+                className="block text-xs font-black text-[#0047AB] hover:underline pt-2"
+              >
+                View Candidates & Match Breakdown →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

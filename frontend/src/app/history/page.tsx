@@ -49,43 +49,34 @@ export default function HistoryPage() {
       await api.delete(`/api/reports/history/downloads/${id}`);
       setDownloadLogs((prev) => prev.filter((item) => item.id !== id));
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to remove download record.');
+      alert(err.response?.data?.detail || 'Failed to remove history record.');
     }
   };
 
-  // Real-time Search Engine filtering
-  const filteredUploads = uploadLogs.filter((item) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    const nameMatch = (item.report_name || '').toLowerCase().includes(q);
-    const dateMatch = new Date(item.created_at).toLocaleString().toLowerCase().includes(q);
-    const countMatch = `${item.resume_count || ''}`.includes(q);
-    return nameMatch || dateMatch || countMatch;
-  });
+  const filteredUploads = uploadLogs.filter(log =>
+    log.report_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const filteredDownloads = downloadLogs.filter((item) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    const nameMatch = (item.report_name || '').toLowerCase().includes(q);
-    const dateMatch = new Date(item.downloaded_at).toLocaleString().toLowerCase().includes(q);
-    const countMatch = `${item.candidate_count || ''}`.includes(q);
-    return nameMatch || dateMatch || countMatch;
-  });
+  const filteredDownloads = downloadLogs.filter(log =>
+    log.report_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    log.excel_file?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-[#F8F5F1] text-[#2B241F] flex font-sans" suppressHydrationWarning>
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-64'}`}>
+      <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-20 md:ml-64'}`}>
         <Navbar collapsed={collapsed} />
 
-        <main className="pt-20 p-8 space-y-6 max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm">
+        <main className="pt-20 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
             <div>
               <div className="flex items-center gap-2 text-[#0047AB] font-bold text-xs tracking-wider uppercase mb-1">
-                <History className="w-4 h-4" /> Recruiter Audit Trail
+                <History className="w-4 h-4" /> Audit & Activity Logs
               </div>
-              <h1 className="text-2xl font-black text-[#2B241F]">Upload & Download History</h1>
-              <p className="text-sm font-semibold text-[#60534A]">Isolated audit logs for your recruiter account</p>
+              <h1 className="text-xl sm:text-2xl font-black text-[#2B241F]">Upload & Download History</h1>
+              <p className="text-xs font-semibold text-[#60534A]">Track all resume processing batches and generated Excel exports</p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -129,90 +120,120 @@ export default function HistoryPage() {
             </div>
           </div>
 
-          {/* History List */}
-          <div className="p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm">
+          {/* History Content */}
+          <div className="bg-white border border-[#E8E2D9] rounded-3xl shadow-sm overflow-hidden">
             {activeTab === 'uploads' ? (
-              <div className="space-y-4">
-                <h3 className="text-sm font-black text-[#2B241F] uppercase tracking-wider border-b border-[#F1ECE6] pb-3">
-                  Upload Campaign Sessions ({filteredUploads.length})
-                </h3>
-                {filteredUploads.length > 0 ? (
-                  filteredUploads.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAF6F1] border border-[#E2D7CB] hover:border-[#D6CCC0] transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#EFE7DE] text-[#0F2C59] flex items-center justify-center font-bold shrink-0 border border-[#E2D7CB]">
-                          <FileText className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="font-black text-[#2B241F] text-sm">{item.report_name}</div>
-                          <div className="text-[11px] font-semibold text-[#60534A]">
-                            {new Date(item.created_at).toLocaleString()} • <span className="font-bold text-[#0F2C59]">{item.resume_count} Resumes</span>
-                          </div>
-                        </div>
-                      </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
+                  <thead>
+                    <tr className="bg-[#FAF6F1] border-b border-[#E8E2D9] text-[11px] font-black uppercase text-[#60534A] tracking-wider">
+                      <th className="p-4">Report Batch Title</th>
+                      <th className="p-4">Resumes Processed</th>
+                      <th className="p-4">Date & Time</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8E2D9] text-xs font-semibold text-[#2B241F]">
+                    {filteredUploads.length > 0 ? (
+                      filteredUploads.map((item) => (
+                        <tr key={item.id} className="hover:bg-[#FAF6F1]/60 transition-colors">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0047AB] flex items-center justify-center font-black shrink-0 border border-blue-100">
+                                <FileText className="w-4.5 h-4.5" />
+                              </div>
+                              <span className="font-bold text-[#0F2C59] text-sm">{item.report_name}</span>
+                            </div>
+                          </td>
 
-                      <div className="flex items-center gap-2 self-end sm:self-center">
-                        <Link
-                          href="/candidates"
-                          className="px-3.5 py-1.5 rounded-xl bg-[#EFE7DE] border border-[#E2D7CB] text-[#0F2C59] font-black text-xs hover:bg-[#E5DACD] transition-all flex items-center gap-1"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>View Candidates</span>
-                        </Link>
-                        <button
-                          onClick={() => handleDeleteUploadRecord(item.id)}
-                          className="p-2 rounded-xl bg-white border border-[#E2D7CB] text-rose-600 hover:bg-rose-50 transition-colors"
-                          title="Delete Log"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-12 text-center text-xs font-semibold text-[#8C7E72]">No upload history logs found.</div>
-                )}
+                          <td className="p-4 font-mono font-bold">{item.resume_count} Resumes</td>
+
+                          <td className="p-4 text-[#60534A]">
+                            {new Date(item.created_at).toLocaleString()}
+                          </td>
+
+                          <td className="p-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Link
+                                href={`/candidates?session_id=${item.session_id || item.id}`}
+                                className="p-2 rounded-xl bg-[#FAF6F1] hover:bg-blue-50 text-[#0047AB] transition-colors border border-[#E2D7CB]"
+                                title="View Candidates"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Link>
+                              <button
+                                onClick={() => handleDeleteUploadRecord(item.id)}
+                                className="p-2 rounded-xl bg-[#FAF6F1] hover:bg-rose-50 text-rose-600 transition-colors border border-[#E2D7CB]"
+                                title="Delete Log"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="p-12 text-center text-xs font-bold text-[#8C7E72] italic">
+                          No upload history matching your search.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             ) : (
-              <div className="space-y-4">
-                <h3 className="text-sm font-black text-[#2B241F] uppercase tracking-wider border-b border-[#F1ECE6] pb-3">
-                  Report Export Downloads ({filteredDownloads.length})
-                </h3>
-                {filteredDownloads.length > 0 ? (
-                  filteredDownloads.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAF6F1] border border-[#E2D7CB] hover:border-[#D6CCC0] transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#EAF5EF] border border-[#D4E8DC] text-[#1E6B43] flex items-center justify-center font-bold shrink-0">
-                          <Download className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="font-black text-[#2B241F] text-sm">{item.report_name}</div>
-                          <div className="text-[11px] font-semibold text-[#60534A]">
-                            {new Date(item.download_date).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
+                  <thead>
+                    <tr className="bg-[#FAF6F1] border-b border-[#E8E2D9] text-[11px] font-black uppercase text-[#60534A] tracking-wider">
+                      <th className="p-4">Report Name</th>
+                      <th className="p-4">Excel File Path</th>
+                      <th className="p-4">Downloaded Date</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8E2D9] text-xs font-semibold text-[#2B241F]">
+                    {filteredDownloads.length > 0 ? (
+                      filteredDownloads.map((item) => (
+                        <tr key={item.id} className="hover:bg-[#FAF6F1]/60 transition-colors">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#7A3E65] flex items-center justify-center font-black shrink-0 border border-purple-100">
+                                <Download className="w-4.5 h-4.5" />
+                              </div>
+                              <span className="font-bold text-[#0F2C59] text-sm">{item.report_name}</span>
+                            </div>
+                          </td>
 
-                      <div className="flex items-center gap-2 self-end sm:self-center">
-                        <button
-                          onClick={() => handleDeleteDownloadRecord(item.id)}
-                          className="p-2 rounded-xl bg-white border border-[#E2D7CB] text-rose-600 hover:bg-rose-50 transition-colors"
-                          title="Delete Log"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-12 text-center text-xs font-semibold text-[#8C7E72]">No report download history logs found.</div>
-                )}
+                          <td className="p-4 font-mono text-xs text-[#60534A] truncate max-w-[200px]">
+                            {item.excel_file}
+                          </td>
+
+                          <td className="p-4 text-[#60534A]">
+                            {new Date(item.download_date).toLocaleString()}
+                          </td>
+
+                          <td className="p-4 text-right">
+                            <button
+                              onClick={() => handleDeleteDownloadRecord(item.id)}
+                              className="p-2 rounded-xl bg-[#FAF6F1] hover:bg-rose-50 text-rose-600 transition-colors border border-[#E2D7CB]"
+                              title="Delete Record"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="p-12 text-center text-xs font-bold text-[#8C7E72] italic">
+                          No download history matching your search.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
