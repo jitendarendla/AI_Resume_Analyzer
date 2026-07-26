@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { SignInButton, SignUpButton, Show, UserButton } from '@clerk/nextjs';
 import {
   UploadCloud,
   FileSpreadsheet,
@@ -201,33 +202,41 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-4">
-            {mounted && token ? (
-              <Link
-                href="/dashboard"
-                className="sleek-btn-primary"
-              >
-                <BarChart3 className="w-4 h-4" />
-                <span>Open Dashboard</span>
-              </Link>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={openLoginModal}
-                  className="text-xs font-black text-[#60534A] hover:text-[#2B241F] transition-colors hidden sm:block cursor-pointer"
+            <Show when="signed-in">
+              <div className="flex items-center gap-3">
+                <UserButton showName />
+                <Link
+                  href="/dashboard"
+                  className="sleek-btn-primary text-xs"
                 >
-                  Recruiter Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={openLoginModal}
-                  className="sleek-btn-primary cursor-pointer"
-                >
-                  <span>Get Started</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </>
-            )}
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Open Dashboard</span>
+                </Link>
+              </div>
+            </Show>
+
+            <Show when="signed-out">
+              <div className="flex items-center gap-3">
+                <SignInButton mode="modal">
+                  <button
+                    type="button"
+                    className="text-xs font-black text-[#60534A] hover:text-[#2B241F] transition-colors hidden sm:block cursor-pointer"
+                  >
+                    Sign In
+                  </button>
+                </SignInButton>
+
+                <SignUpButton mode="modal">
+                  <button
+                    type="button"
+                    className="sleek-btn-primary cursor-pointer text-xs"
+                  >
+                    <span>Get Started</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </SignUpButton>
+              </div>
+            </Show>
           </div>
         </div>
       </header>

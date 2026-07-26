@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronDown, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { SignInButton, SignUpButton, Show, UserButton } from '@clerk/nextjs';
 
 interface NavbarProps {
   collapsed: boolean;
@@ -32,6 +33,28 @@ export default function Navbar({ collapsed }: NavbarProps) {
           <Sparkles className="w-3.5 h-3.5 text-[#0047AB]" />
           <span>AI Engine Active</span>
         </div>
+
+        {/* Clerk Auth Controls */}
+        <Show when="signed-out">
+          <div className="flex items-center gap-2">
+            <SignInButton mode="modal">
+              <button className="text-xs font-black text-[#60534A] hover:text-[#2B241F] transition-colors cursor-pointer px-3 py-2">
+                Sign In
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button className="sleek-btn-primary text-xs cursor-pointer">
+                Create Account
+              </button>
+            </SignUpButton>
+          </div>
+        </Show>
+
+        <Show when="signed-in">
+          <div className="flex items-center gap-3">
+            <UserButton showName />
+          </div>
+        </Show>
 
         {/* Recruiter Profile Pill */}
         <Link href="/profile" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity" suppressHydrationWarning>
