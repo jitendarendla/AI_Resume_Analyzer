@@ -40,7 +40,7 @@ services:
       - key: NODE_VERSION
         value: 20.10.0
       - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-        value: pk_test_c291bmQtZ3VwcHktNzAuY2xlcmsuYWNjb3VudHMuZGV2JA
+        value: pk_test_bGVuaWVudC1sZW9wYXJkLTkxLmNsZXJrLmFjY291bnRzLmRldiQ
       - key: CLERK_SECRET_KEY
         sync: false
       - key: NEXT_PUBLIC_API_URL
