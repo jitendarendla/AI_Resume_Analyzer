@@ -34,7 +34,7 @@ export default function Navbar({ collapsed }: NavbarProps) {
           <span>AI Engine Active</span>
         </div>
 
-        {/* Clerk Auth Controls */}
+        {/* Clerk Signed Out State */}
         <Show when="signed-out">
           <div className="flex items-center gap-2">
             <SignInButton mode="modal">
@@ -50,23 +50,12 @@ export default function Navbar({ collapsed }: NavbarProps) {
           </div>
         </Show>
 
+        {/* Clerk Signed In State */}
         <Show when="signed-in">
           <div className="flex items-center gap-3">
             <UserButton showName />
           </div>
         </Show>
-
-        {/* Recruiter Profile Pill */}
-        <Link href="/profile" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity" suppressHydrationWarning>
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#0F2C59] to-[#1E40AF] flex items-center justify-center font-black text-white text-sm shadow-md border border-blue-400/20">
-            {mounted && user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'R'}
-          </div>
-          <div className="text-left hidden sm:block">
-            <p className="text-xs font-black text-[#2B241F] leading-tight">{mounted && user?.full_name ? user.full_name : 'Recruiter'}</p>
-            <p className="text-[10px] font-extrabold text-[#60534A]">{mounted && user?.company ? user.company : 'Recruitment Portal'}</p>
-          </div>
-          <ChevronDown className="w-3.5 h-3.5 text-[#8C7E72] hidden sm:block" />
-        </Link>
       </div>
     </header>
   );
