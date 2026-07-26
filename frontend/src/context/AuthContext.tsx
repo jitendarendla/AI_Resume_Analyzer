@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
+import { useUser, useClerk } from '@clerk/nextjs';
 
 interface RecruiterUser {
   recruiter_id: string;
@@ -11,6 +12,7 @@ interface RecruiterUser {
   full_name?: string;
   company?: string;
   is_admin: boolean;
+  avatar_url?: string;
 }
 
 interface AuthContextType {
@@ -30,6 +32,9 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
+  const { signOut } = useClerk();
+
   const [user, setUser] = useState<RecruiterUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,51 +42,74 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('recruiter');
+    if (!isLoaded) return;
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      try {
-        const u = JSON.parse(storedUser);
-        setUser({
-          ...u,
-          full_name: u.full_name || u.name
-        });
-      } catch (e) {
-        console.error('Failed to parse recruiter user');
-      }
+    if (isSignedIn && clerkUser) {
+      const email = clerkUser.primaryEmailAddress?.emailAddress || '';
+      const fullName = clerkUser.fullName || clerkUser.firstName || 'Recruiter';
+      const cUser: RecruiterUser = {
+        recruiter_id: clerkUser.id,
+        email: email,
+        name: fullName,
+        full_name: fullName,
+        company: (clerkUser.publicMetadata?.company as string) || 'Recruitment Agency',
+        is_admin: true,
+        avatar_url: clerkUser.imageUrl,
+      };
+
+      setUser(cUser);
+      setToken(clerkUser.id);
+      localStorage.setItem('token', clerkUser.id);
+      localStorage.setItem('recruiter', JSON.stringify(cUser));
     } else {
-      const publicPaths = ['/', '/login', '/register', '/forgot-password'];
-      if (!publicPaths.includes(pathname)) {
-        router.push('/login');
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('recruiter');
+
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        try {
+          const u = JSON.parse(storedUser);
+          setUser({
+            ...u,
+            full_name: u.full_name || u.name
+          });
+        } catch (e) {
+          console.error('Failed to parse recruiter user');
+        }
+      } else {
+        setUser(null);
+        setToken(null);
       }
     }
     setIsLoading(false);
-  }, [pathname, router]);
+  }, [isLoaded, isSignedIn, clerkUser]);
 
-  const loginUser = (data: any) => {
-    setToken(data.access_token);
-    const userInfo: RecruiterUser = {
-      recruiter_id: data.recruiter_id,
-      email: data.email,
-      name: data.name || data.full_name || 'Recruiter',
-      full_name: data.full_name || data.name || 'Recruiter',
-      company: data.company,
-      is_admin: data.is_admin || false,
-    };
-    setUser(userInfo);
-    localStorage.setItem('token', data.access_token);
-    localStorage.setItem('recruiter', JSON.stringify(userInfo));
+  const loginUser = (tokenData: any) => {
+    if (tokenData.access_token) {
+      localStorage.setItem('token', tokenData.access_token);
+      localStorage.setItem('recruiter', JSON.stringify(tokenData.user));
+      setToken(tokenData.access_token);
+      setUser(tokenData.user);
+    } else if (tokenData.recruiter_id || tokenData.email) {
+      localStorage.setItem('token', tokenData.recruiter_id || 'clerk_token');
+      localStorage.setItem('recruiter', JSON.stringify(tokenData));
+      setToken(tokenData.recruiter_id || 'clerk_token');
+      setUser(tokenData);
+    }
     router.push('/dashboard');
   };
 
-  const logoutUser = () => {
-    setToken(null);
-    setUser(null);
+  const logoutUser = async () => {
     localStorage.removeItem('token');
     localStorage.removeItem('recruiter');
-    router.push('/login');
+    setUser(null);
+    setToken(null);
+    try {
+      await signOut();
+    } catch (e) {
+      console.log('Signout complete');
+    }
+    router.push('/');
   };
 
   return (
