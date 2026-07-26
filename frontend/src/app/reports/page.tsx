@@ -74,7 +74,7 @@ export default function ReportsPage() {
       <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-20 md:ml-64'}`}>
         <Navbar collapsed={collapsed} />
 
-        <main className="pt-20 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+        <main className="pt-24 sm:pt-28 lg:pt-32 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
             <div>
