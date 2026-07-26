@@ -10,12 +10,9 @@ import {
   Users,
   FileSpreadsheet,
   History,
-  User,
   LogOut,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
-  Sparkles
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -38,7 +35,6 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
     { name: 'History', href: '/history', icon: History },
     { name: 'Candidates', href: '/candidates', icon: Users },
     { name: 'Reports', href: '/reports', icon: FileSpreadsheet },
-    { name: 'Profile', href: '/profile', icon: User },
   ];
 
   return (
