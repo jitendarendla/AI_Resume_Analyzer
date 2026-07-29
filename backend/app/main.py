@@ -56,7 +56,7 @@ async def options_handler(full_path: str, request: Request):
         content={"message": "OK"},
         headers={
             "Access-Control-Allow-Origin": origin if origin else "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
             "Access-Control-Allow-Headers": "*",
             "Access-Control-Max-Age": "86400",
         }
@@ -69,10 +69,17 @@ app.include_router(analysis.router)
 app.include_router(reports.router)
 app.include_router(admin.router)
 
-@app.get("/")
+# Root & Health check routes supporting GET and HEAD for Render deployment probes
+@app.api_route("/", methods=["GET", "HEAD"])
 def root():
     return {
         "status": "online",
         "message": f"Welcome to {settings.PROJECT_NAME} API v{settings.VERSION}",
         "docs": "/docs"
     }
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+@app.api_route("/healthz", methods=["GET", "HEAD"])
+@app.api_route("/api/health", methods=["GET", "HEAD"])
+def health_check():
+    return {"status": "healthy", "service": "ai-resume-analyzer-backend"}
