@@ -23,6 +23,7 @@ import Link from 'next/link';
 
 export default function UploadPage() {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [reportName, setReportName] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -212,13 +213,13 @@ export default function UploadPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F5F1] text-[#2B241F] flex font-sans" suppressHydrationWarning>
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-20 md:ml-64'}`}>
-        <Navbar collapsed={collapsed} />
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <div className={`flex-1 transition-all duration-300 ml-0 ${collapsed ? 'md:ml-20' : 'md:ml-20 lg:ml-64'}`}>
+        <Navbar collapsed={collapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
-        <main className="pt-24 sm:pt-28 lg:pt-32 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
+        <main className="pt-20 sm:pt-24 lg:pt-28 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-8 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
             <div>
               <div className="flex items-center gap-2 text-[#0047AB] font-bold text-xs tracking-wider uppercase mb-1">
                 <UploadCloud className="w-4 h-4" /> Bulk Resume Processing Engine
@@ -231,7 +232,7 @@ export default function UploadPage() {
           {/* Upload Form */}
           <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Form Left Side */}
-            <div className="lg:col-span-2 p-5 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-5">
+            <div className="lg:col-span-2 p-4 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-5">
               <div>
                 <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-2">
                   Folder / Report Title <span className="text-rose-500 font-bold">* (Required)</span>
@@ -267,7 +268,7 @@ export default function UploadPage() {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-3xl p-6 text-center transition-all ${
+                className={`border-2 border-dashed rounded-3xl p-5 sm:p-6 text-center transition-all ${
                   dragActive ? 'border-[#0047AB] bg-blue-50/50' : 'border-[#E2D7CB] bg-[#FAF6F1]/50 hover:bg-[#FAF6F1]'
                 }`}
               >
@@ -277,8 +278,8 @@ export default function UploadPage() {
                 <p className="text-sm font-black text-[#2B241F]">Drag & Drop Resume Files or Folders Here</p>
                 <p className="text-xs font-medium text-[#60534A] mt-1 mb-4">Supports PDF & DOCX formats (Up to 100+ files per batch)</p>
 
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  <label className="sleek-btn-primary text-xs cursor-pointer">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <label className="sleek-btn-primary text-xs cursor-pointer w-full sm:w-auto">
                     <span>Select Individual Files</span>
                     <input
                       type="file"
@@ -289,7 +290,7 @@ export default function UploadPage() {
                     />
                   </label>
 
-                  <label className="sleek-btn-secondary text-xs cursor-pointer">
+                  <label className="sleek-btn-secondary text-xs cursor-pointer w-full sm:w-auto">
                     <span>Upload Entire Folder</span>
                     <input
                       type="file"
@@ -362,7 +363,7 @@ export default function UploadPage() {
             </div>
 
             {/* Sidebar Guide */}
-            <div className="p-5 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-4 flex flex-col justify-between">
+            <div className="p-4 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-4 flex flex-col justify-between">
               <div>
                 <h3 className="text-base font-black text-[#2B241F] mb-3">AI Resume Match Engine Guide</h3>
                 <div className="space-y-3 text-xs text-[#60534A]">
@@ -407,7 +408,7 @@ export default function UploadPage() {
       {/* Progress & Success Modal */}
       {uploading && (
         <div className="fixed inset-0 z-50 bg-[#0F2C59]/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E8E2D9] rounded-3xl p-8 max-w-md w-full shadow-2xl text-center space-y-4">
+          <div className="bg-white border border-[#E8E2D9] rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4">
             <div className="w-14 h-14 rounded-2xl bg-blue-50 text-[#0047AB] flex items-center justify-center mx-auto border border-blue-100 shadow-md">
               <RotateCw className="w-7 h-7 animate-spin" />
             </div>
@@ -429,7 +430,7 @@ export default function UploadPage() {
 
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 bg-[#0F2C59]/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E8E2D9] rounded-3xl p-8 max-w-md w-full shadow-2xl text-center space-y-5 animate-in fade-in zoom-in">
+          <div className="bg-white border border-[#E8E2D9] rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-5 animate-in fade-in zoom-in">
             <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-[#1E6B43] flex items-center justify-center mx-auto border border-emerald-100 shadow-md">
               <CheckCircle className="w-8 h-8" />
             </div>

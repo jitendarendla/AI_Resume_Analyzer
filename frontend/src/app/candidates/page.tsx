@@ -17,6 +17,7 @@ import {
 
 export default function CandidatesPage() {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [candidates, setCandidates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -81,13 +82,13 @@ export default function CandidatesPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F5F1] text-[#2B241F] flex font-sans" suppressHydrationWarning>
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-20 md:ml-64'}`}>
-        <Navbar collapsed={collapsed} />
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <div className={`flex-1 transition-all duration-300 ml-0 ${collapsed ? 'md:ml-20' : 'md:ml-20 lg:ml-64'}`}>
+        <Navbar collapsed={collapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
-        <main className="pt-24 sm:pt-28 lg:pt-32 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
+        <main className="pt-20 sm:pt-24 lg:pt-28 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
           {/* Page Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
             <div>
               <div className="flex items-center gap-2 text-[#0047AB] font-bold text-xs tracking-wider uppercase mb-1">
                 <Users className="w-4 h-4" /> Candidate Analysis Engine
@@ -114,9 +115,9 @@ export default function CandidatesPage() {
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
               {/* Folder Selector Dropdown */}
-              <div className="flex items-center gap-2 bg-[#FAF6F1] border border-[#E2D7CB] rounded-xl px-3 py-2">
+              <div className="flex items-center gap-1.5 bg-[#FAF6F1] border border-[#E2D7CB] rounded-xl px-2.5 py-2 flex-1 sm:flex-initial">
                 <FolderKanban className="w-4 h-4 text-[#7A3E65] shrink-0" />
                 <span className="text-xs text-[#60534A] font-bold hidden sm:inline">Folder:</span>
                 <select
@@ -125,7 +126,7 @@ export default function CandidatesPage() {
                     setSelectedFolder(e.target.value);
                     setPage(1);
                   }}
-                  className="bg-transparent text-xs text-[#2B241F] font-black focus:outline-none cursor-pointer max-w-[150px] truncate"
+                  className="bg-transparent text-xs text-[#2B241F] font-black focus:outline-none cursor-pointer w-full sm:max-w-[150px] truncate"
                 >
                   {availableFolders.map((folder, idx) => (
                     <option key={idx} value={folder}>
@@ -136,7 +137,7 @@ export default function CandidatesPage() {
               </div>
 
               {/* Min ATS Filter */}
-              <div className="flex items-center gap-2 bg-[#FAF6F1] border border-[#E2D7CB] rounded-xl px-3 py-2">
+              <div className="flex items-center gap-1.5 bg-[#FAF6F1] border border-[#E2D7CB] rounded-xl px-2.5 py-2">
                 <Filter className="w-4 h-4 text-[#0047AB] shrink-0" />
                 <span className="text-xs text-[#60534A] font-bold hidden sm:inline">Min ATS:</span>
                 <select
@@ -155,7 +156,7 @@ export default function CandidatesPage() {
               </div>
 
               {/* Sort By Dropdown */}
-              <div className="flex items-center gap-2 bg-[#FAF6F1] border border-[#E2D7CB] rounded-xl px-3 py-2">
+              <div className="flex items-center gap-1.5 bg-[#FAF6F1] border border-[#E2D7CB] rounded-xl px-2.5 py-2 flex-1 sm:flex-initial">
                 <ArrowUpDown className="w-4 h-4 text-[#1E6B43] shrink-0" />
                 <select
                   value={`${sortBy}-${sortOrder}`}
@@ -164,9 +165,9 @@ export default function CandidatesPage() {
                     setSortBy(sb);
                     setSortOrder(so as 'asc' | 'desc');
                   }}
-                  className="bg-transparent text-xs text-[#2B241F] font-black focus:outline-none cursor-pointer"
+                  className="bg-transparent text-xs text-[#2B241F] font-black focus:outline-none cursor-pointer w-full"
                 >
-                  <option value="ats_score-desc">ATS Score (High to Low)</option>
+                  <option value="ats_score-desc font-black">ATS Score (High to Low)</option>
                   <option value="ats_score-asc">ATS Score (Low to High)</option>
                   <option value="experience_years-desc">Experience (High to Low)</option>
                   <option value="name-asc">Name (A-Z)</option>
@@ -178,7 +179,7 @@ export default function CandidatesPage() {
           {/* Candidates Table */}
           <div className="bg-white border border-[#E8E2D9] rounded-3xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[700px]">
+              <table className="w-full text-left border-collapse min-w-[650px]">
                 <thead>
                   <tr className="bg-[#FAF6F1] border-b border-[#E8E2D9] text-[11px] font-black uppercase text-[#60534A] tracking-wider">
                     <th className="p-4">Rank / Candidate</th>
@@ -207,7 +208,7 @@ export default function CandidatesPage() {
                             </span>
                             <div>
                               <p className="font-bold text-[#0F2C59] text-sm">{candidate.name}</p>
-                              <p className="text-[11px] text-[#60534A] font-medium">{candidate.email || 'No email specified'}</p>
+                              <p className="text-[11px] text-[#60534A] font-medium truncate max-w-[140px] sm:max-w-none">{candidate.email || 'No email specified'}</p>
                             </div>
                           </div>
                         </td>
@@ -266,7 +267,7 @@ export default function CandidatesPage() {
 
             {/* Pagination Bar */}
             {totalPages > 1 && (
-              <div className="p-4 bg-[#FAF6F1] border-t border-[#E8E2D9] flex items-center justify-between text-xs font-bold text-[#60534A]">
+              <div className="p-4 bg-[#FAF6F1] border-t border-[#E8E2D9] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold text-[#60534A]">
                 <span>Showing Page {page} of {totalPages} ({totalCount} Total Candidates)</span>
                 <div className="flex items-center gap-2">
                   <button

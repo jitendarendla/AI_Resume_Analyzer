@@ -2,17 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronDown, Sparkles } from 'lucide-react';
+import { Sparkles, Menu } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { SignInButton, SignUpButton, Show, UserButton } from '@clerk/nextjs';
 
 interface NavbarProps {
   collapsed: boolean;
+  mobileOpen?: boolean;
+  setMobileOpen?: (v: boolean) => void;
   searchQuery?: string;
   setSearchQuery?: (q: string) => void;
 }
 
-export default function Navbar({ collapsed }: NavbarProps) {
+export default function Navbar({ collapsed, mobileOpen, setMobileOpen }: NavbarProps) {
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
 
@@ -22,12 +24,30 @@ export default function Navbar({ collapsed }: NavbarProps) {
 
   return (
     <header
-      className={`fixed top-0 right-0 z-30 h-16 bg-[#FAF6F1]/90 backdrop-blur-md border-b border-[#E8E2D9] transition-all duration-300 flex items-center ${
-        collapsed ? 'left-20' : 'left-20 md:left-64'
+      className={`fixed top-0 right-0 z-30 h-16 bg-[#FAF6F1]/90 backdrop-blur-md border-b border-[#E8E2D9] transition-all duration-300 flex items-center left-0 ${
+        collapsed ? 'md:left-20' : 'md:left-20 lg:left-64'
       }`}
       suppressHydrationWarning
     >
-      <div className="max-w-7xl mx-auto w-full flex items-center justify-end px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto w-full flex items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* Left Mobile Menu Toggle */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setMobileOpen && setMobileOpen(!mobileOpen)}
+            className="p-2 rounded-xl bg-[#EFE7DE] border border-[#E2D7CB] text-[#2B241F] hover:bg-[#E6DCF2] md:hidden cursor-pointer transition-colors"
+            title="Toggle Menu"
+          >
+            <Menu className="w-5 h-5 text-[#0F2C59]" />
+          </button>
+          
+          <div className="flex items-center gap-2 md:hidden">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#0F2C59] to-[#0047AB] p-0.5 flex items-center justify-center">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain rounded" />
+            </div>
+            <span className="font-black text-xs text-[#2B241F] tracking-wider uppercase font-sans">AI RESUME</span>
+          </div>
+        </div>
+
         {/* Right User Controls */}
         <div className="flex items-center gap-3 sm:gap-4">
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EFE7DE] border border-[#E2D7CB] text-[11px] font-extrabold text-[#60534A]">

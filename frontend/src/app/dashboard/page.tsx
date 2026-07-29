@@ -34,6 +34,7 @@ import Link from 'next/link';
 
 export default function DashboardPage() {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -80,18 +81,18 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F5F1] text-[#2B241F] flex font-sans" suppressHydrationWarning>
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      <div className={`flex-1 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-20 md:ml-64'}`}>
-        <Navbar collapsed={collapsed} />
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <div className={`flex-1 transition-all duration-300 ml-0 ${collapsed ? 'md:ml-20' : 'md:ml-20 lg:ml-64'}`}>
+        <Navbar collapsed={collapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
-        <main className="pt-24 sm:pt-28 lg:pt-32 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
+        <main className="pt-20 sm:pt-24 lg:pt-28 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
           {/* Header banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-8 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
             <div className="relative z-10 space-y-1">
               <div className="flex items-center gap-2 text-[#0047AB] font-black text-xs tracking-wider uppercase">
                 <Sparkles className="w-4 h-4" /> AI Resume Analyzer
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#2B241F] tracking-tight">Recruiter Dashboard</h1>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#2B241F] tracking-tight">Recruiter Dashboard</h1>
               <p className="text-xs font-semibold text-[#60534A]">Real-time candidate evaluation & Job Description matching insights</p>
             </div>
             <div className="flex items-center gap-3 relative z-10 self-start sm:self-auto">
@@ -140,7 +141,7 @@ export default function DashboardPage() {
           {/* Analytics Charts Row: Date/Week Bar Graph & Folder-Wise Experience Pie Chart */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Bar Graph: Date-Wise and Week-Wise Toggle */}
-            <div className="lg:col-span-2 p-5 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm">
+            <div className="lg:col-span-2 p-4 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
                   <div className="flex items-center gap-2">
@@ -179,7 +180,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="h-64">
+              <div className="h-56 sm:h-64">
                 {mounted ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={barChartData}>
@@ -196,7 +197,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Folder-Wise Experience Breakdown Pie Chart */}
-            <div className="p-5 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm flex flex-col justify-between">
+            <div className="p-4 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm flex flex-col justify-between">
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
@@ -264,7 +265,7 @@ export default function DashboardPage() {
 
           {/* Quick Actions & Recent Activity Table */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 p-5 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-4">
+            <div className="lg:col-span-2 p-4 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-base sm:text-lg font-black text-[#2B241F]">Recent Resume Sessions</h3>
                 <Link href="/history" className="text-xs font-black text-[#0047AB] hover:underline flex items-center gap-1">
@@ -274,7 +275,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="overflow-x-auto rounded-2xl border border-[#E8E2D9]">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse min-w-[500px]">
                   <thead>
                     <tr className="bg-[#FAF6F1] border-b border-[#E8E2D9] text-[11px] font-black uppercase text-[#60534A] tracking-wider">
                       <th className="p-3.5">Report Batch Name</th>
@@ -313,7 +314,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Actions Panel */}
-            <div className="p-5 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-4 flex flex-col justify-between">
+            <div className="p-4 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-4 flex flex-col justify-between">
               <div>
                 <h3 className="text-base sm:text-lg font-black text-[#2B241F] mb-1">Quick Actions</h3>
                 <p className="text-xs font-semibold text-[#60534A] mb-4">Common recruiter operations & report exports</p>
