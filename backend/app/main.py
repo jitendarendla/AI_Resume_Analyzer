@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -29,20 +30,14 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Security Headers
+# 1. Add Security Headers Middleware
 app.add_middleware(SecurityHeadersMiddleware)
 
-# Public CORS Middleware with Origin Regex matching for Render & Local dev
+# 2. Add CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://ai-resume-analyzer-frontend.onrender.com",
-        "https://ai-resume-analyzer-backend.onrender.com"
-    ],
-    allow_origin_regex=r"https://.*\.onrender\.com|http://localhost:\d+|http://127\.0\.0\.1:\d+",
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=[
@@ -52,6 +47,20 @@ app.add_middleware(
     ],
     max_age=600
 )
+
+# Catch-all OPTIONS preflight handler for CORS
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str, request: Request):
+    origin = request.headers.get("origin", "*")
+    return JSONResponse(
+        content={"message": "OK"},
+        headers={
+            "Access-Control-Allow-Origin": origin if origin else "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Max-Age": "86400",
+        }
+    )
 
 # Include Routers
 app.include_router(auth.router)
@@ -64,15 +73,6 @@ app.include_router(admin.router)
 def root():
     return {
         "status": "online",
-        "service": settings.PROJECT_NAME,
-        "version": settings.VERSION,
+        "message": f"Welcome to {settings.PROJECT_NAME} API v{settings.VERSION}",
         "docs": "/docs"
-    }
-
-@app.get("/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "service": settings.PROJECT_NAME,
-        "version": settings.VERSION
     }
