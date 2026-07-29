@@ -5,7 +5,6 @@ from app.core.config import settings
 
 MAGIC_SIGNATURES = {
     b"MZ": "EXE/DLL",
-    b"PK\x03\x04": "ZIP/JAR",
 }
 
 ALLOWED_MIME_TYPES = {
@@ -33,11 +32,12 @@ def validate_and_scan_file(file: UploadFile) -> tuple[bool, str]:
     header = file.file.read(1024)
     file.file.seek(0) # Reset stream pointer
     
-    # Check for executable signatures
+    # Check for executable signatures (excluding docx zip signature)
     for sig, sig_type in MAGIC_SIGNATURES.items():
-        if header.startswith(sig) and ext != "docx": # docx is zip-based, handled separately
-            # Quarantine malicious upload
-            quarantine_path = os.path.join(settings.QUARANTINE_DIR, f"QUARANTINED_{file.filename}")
+        if header.startswith(sig):
+            # Quarantine malicious upload safely
+            os.makedirs(settings.QUARANTINE_DIR, exist_ok=True)
+            quarantine_path = os.path.join(settings.QUARANTINE_DIR, f"QUARANTINED_{clean_filename}")
             with open(quarantine_path, "wb") as qf:
                 qf.write(file.file.read())
             file.file.seek(0)

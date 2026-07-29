@@ -1,5 +1,6 @@
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -26,7 +27,52 @@ app = FastAPI(
 )
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Custom Rate Limit Handler with CORS
+@app.exception_handler(RateLimitExceeded)
+async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    origin = request.headers.get("origin", "*")
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Rate limit exceeded. Please wait a minute before retrying."},
+        headers={
+            "Access-Control-Allow-Origin": origin if origin else "*",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
+
+# Custom HTTP Exception Handler with CORS
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request: Request, exc: HTTPException):
+    origin = request.headers.get("origin", "*")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers={
+            "Access-Control-Allow-Origin": origin if origin else "*",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
+
+# Custom General Exception Handler with CORS
+@app.exception_handler(Exception)
+async def custom_general_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin", "*")
+    print(f"[ERROR] Exception on {request.method} {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error: {str(exc)}"},
+        headers={
+            "Access-Control-Allow-Origin": origin if origin else "*",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
 
 # Custom Bulletproof CORS & Security Middleware
 @app.middleware("http")
@@ -43,9 +89,23 @@ async def cors_and_security_middleware(request: Request, call_next):
         response.headers["Access-Control-Max-Age"] = "86400"
         return response
 
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        print(f"[UNHANDLED ERROR] {request.method} {request.url.path}: {exc}")
+        origin_val = origin if origin else "*"
+        response = JSONResponse(
+            status_code=500,
+            content={"detail": f"Server Error: {str(exc)}"},
+            headers={
+                "Access-Control-Allow-Origin": origin_val,
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*",
+            }
+        )
 
-    # Attach CORS headers to every response (200, 400, 401, 404, 500)
+    # Attach CORS headers to EVERY response (200, 400, 401, 404, 429, 500)
     response.headers["Access-Control-Allow-Origin"] = origin if origin else "*"
     response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
