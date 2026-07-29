@@ -1,13 +1,11 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.core.middleware import SecurityHeadersMiddleware
 
 from app.routers import auth, upload, analysis, reports, admin
 
@@ -30,37 +28,48 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# 1. Add Security Headers Middleware
-app.add_middleware(SecurityHeadersMiddleware)
+# Custom Bulletproof CORS & Security Middleware
+@app.middleware("http")
+async def cors_and_security_middleware(request: Request, call_next):
+    origin = request.headers.get("origin")
+    
+    # Handle preflight OPTIONS requests immediately with 200 OK & full CORS headers
+    if request.method == "OPTIONS":
+        response = Response(status_code=200)
+        response.headers["Access-Control-Allow-Origin"] = origin if origin else "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Max-Age"] = "86400"
+        return response
 
-# 2. Add CORSMiddleware
+    response = await call_next(request)
+
+    # Attach CORS headers to every response (200, 400, 401, 404, 500)
+    response.headers["Access-Control-Allow-Origin"] = origin if origin else "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Expose-Headers"] = "Content-Disposition, Content-Length, X-Total-Count"
+
+    # Security Headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "no-referrer-when-downgrade"
+    response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
+
+    return response
+
+# Standard CORSMiddleware as additional fallback
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origin_regex=r".*",
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=[
-        "Content-Disposition",
-        "Content-Length",
-        "X-Total-Count"
-    ],
-    max_age=600
+    expose_headers=["Content-Disposition", "Content-Length", "X-Total-Count"],
+    max_age=86400,
 )
-
-# Catch-all OPTIONS preflight handler for CORS
-@app.options("/{full_path:path}")
-async def options_handler(full_path: str, request: Request):
-    origin = request.headers.get("origin", "*")
-    return JSONResponse(
-        content={"message": "OK"},
-        headers={
-            "Access-Control-Allow-Origin": origin if origin else "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Max-Age": "86400",
-        }
-    )
 
 # Include Routers
 app.include_router(auth.router)
