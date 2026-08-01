@@ -40,6 +40,7 @@ async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
             "Access-Control-Allow-Credentials": "true",
             "Access-Control-Allow-Methods": "*",
             "Access-Control-Allow-Headers": "*",
+            "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
         }
     )
 
@@ -55,6 +56,7 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
             "Access-Control-Allow-Credentials": "true",
             "Access-Control-Allow-Methods": "*",
             "Access-Control-Allow-Headers": "*",
+            "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
         }
     )
 
@@ -65,12 +67,13 @@ async def custom_general_exception_handler(request: Request, exc: Exception):
     print(f"[ERROR] Exception on {request.method} {request.url.path}: {exc}")
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal Server Error: {str(exc)}"},
+        content={"detail": f"Server Error: {str(exc)}"},
         headers={
             "Access-Control-Allow-Origin": origin if origin else "*",
             "Access-Control-Allow-Credentials": "true",
             "Access-Control-Allow-Methods": "*",
             "Access-Control-Allow-Headers": "*",
+            "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
         }
     )
 
@@ -87,6 +90,7 @@ async def cors_and_security_middleware(request: Request, call_next):
         response.headers["Access-Control-Allow-Headers"] = "*"
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Max-Age"] = "86400"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
         return response
 
     try:
@@ -102,6 +106,7 @@ async def cors_and_security_middleware(request: Request, call_next):
                 "Access-Control-Allow-Credentials": "true",
                 "Access-Control-Allow-Methods": "*",
                 "Access-Control-Allow-Headers": "*",
+                "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
             }
         )
 
@@ -112,43 +117,43 @@ async def cors_and_security_middleware(request: Request, call_next):
     response.headers["Access-Control-Allow-Headers"] = "*"
     response.headers["Access-Control-Expose-Headers"] = "Content-Disposition, Content-Length, X-Total-Count"
 
-    # Security Headers
+    # Security & Popup Compatibility Headers
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "no-referrer-when-downgrade"
     response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
 
     return response
 
-# Standard CORSMiddleware as additional fallback
+# Standard CORS Middleware fallback
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r".*",
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["Content-Disposition", "Content-Length", "X-Total-Count"],
-    max_age=86400,
 )
 
-# Include Routers
+# Register API Routers
 app.include_router(auth.router)
 app.include_router(upload.router)
 app.include_router(analysis.router)
 app.include_router(reports.router)
 app.include_router(admin.router)
 
-# Root & Health check routes supporting GET and HEAD for Render deployment probes
+# Health & Root Check Endpoints
 @app.api_route("/", methods=["GET", "HEAD"])
 def root():
     return {
-        "status": "online",
-        "message": f"Welcome to {settings.PROJECT_NAME} API v{settings.VERSION}",
-        "docs": "/docs"
+        "status": "healthy",
+        "service": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "message": "AI Resume Analyzer Backend API is operational."
     }
 
 @app.api_route("/health", methods=["GET", "HEAD"])
 @app.api_route("/healthz", methods=["GET", "HEAD"])
 @app.api_route("/api/health", methods=["GET", "HEAD"])
 def health_check():
-    return {"status": "healthy", "service": "ai-resume-analyzer-backend"}
+    return {"status": "ok", "service": "online"}
