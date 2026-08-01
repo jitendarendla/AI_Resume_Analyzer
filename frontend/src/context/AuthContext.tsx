@@ -3,10 +3,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
-import { useUser, useClerk } from '@clerk/nextjs';
 
 interface RecruiterUser {
-  recruiter_id: string;
+  id: string;
+  recruiter_id?: string;
   email: string;
   name: string;
   full_name?: string;
@@ -32,9 +32,6 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
-  const { signOut } = useClerk();
-
   const [user, setUser] = useState<RecruiterUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,74 +39,66 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!isLoaded) return;
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('recruiter');
 
-    if (isSignedIn && clerkUser) {
-      const email = clerkUser.primaryEmailAddress?.emailAddress || '';
-      const fullName = clerkUser.fullName || clerkUser.firstName || 'Recruiter';
-      const cUser: RecruiterUser = {
-        recruiter_id: clerkUser.id,
-        email: email,
-        name: fullName,
-        full_name: fullName,
-        company: (clerkUser.publicMetadata?.company as string) || 'Recruitment Agency',
-        is_admin: true,
-        avatar_url: clerkUser.imageUrl,
-      };
-
-      setUser(cUser);
-      setToken(clerkUser.id);
-      localStorage.setItem('token', clerkUser.id);
-      localStorage.setItem('recruiter', JSON.stringify(cUser));
-    } else {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('recruiter');
-
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        try {
-          const u = JSON.parse(storedUser);
-          setUser({
-            ...u,
-            full_name: u.full_name || u.name
-          });
-        } catch (e) {
-          console.error('Failed to parse recruiter user');
-        }
-      } else {
-        setUser(null);
-        setToken(null);
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      try {
+        const parsed = JSON.parse(storedUser);
+        setUser({
+          ...parsed,
+          full_name: parsed.full_name || parsed.name
+        });
+      } catch (e) {
+        console.error('Failed to parse recruiter user');
       }
+
+      // Refresh current user profile from backend
+      api.get('/api/auth/me', { headers: { Authorization: `Bearer ${storedToken}` } })
+        .then((res) => {
+          if (res.data) {
+            const freshUser = {
+              ...res.data,
+              full_name: res.data.name || res.data.full_name
+            };
+            setUser(freshUser);
+            localStorage.setItem('recruiter', JSON.stringify(freshUser));
+          }
+        })
+        .catch(() => {
+          // Token expired or invalid
+          console.warn('Session expired');
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, [isLoaded, isSignedIn, clerkUser]);
+  }, []);
 
   const loginUser = (tokenData: any) => {
     if (tokenData.access_token) {
+      const u = tokenData.user || {};
+      const formattedUser = {
+        ...u,
+        full_name: u.name || u.full_name || 'Recruiter'
+      };
       localStorage.setItem('token', tokenData.access_token);
-      localStorage.setItem('recruiter', JSON.stringify(tokenData.user));
+      localStorage.setItem('recruiter', JSON.stringify(formattedUser));
       setToken(tokenData.access_token);
-      setUser(tokenData.user);
-    } else if (tokenData.recruiter_id || tokenData.email) {
-      localStorage.setItem('token', tokenData.recruiter_id || 'clerk_token');
-      localStorage.setItem('recruiter', JSON.stringify(tokenData));
-      setToken(tokenData.recruiter_id || 'clerk_token');
-      setUser(tokenData);
+      setUser(formattedUser);
     }
     router.push('/dashboard');
   };
 
-  const logoutUser = async () => {
+  const logoutUser = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('recruiter');
     setUser(null);
     setToken(null);
-    try {
-      await signOut();
-    } catch (e) {
-      console.log('Signout complete');
-    }
-    router.push('/');
+    router.push('/login');
   };
 
   return (

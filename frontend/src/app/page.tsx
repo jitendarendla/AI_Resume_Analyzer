@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { SignInButton, SignUpButton, Show, UserButton } from '@clerk/nextjs';
 import {
   UploadCloud,
   FileSpreadsheet,
@@ -51,7 +50,7 @@ export default function HomePage() {
     },
     {
       q: 'Is there a limit on bulk file uploads?',
-      a: 'You can upload up to 20 resumes simultaneously per batch. Higher volume uploads are automatically queued for background processing.',
+      a: 'You can upload up to 100+ resumes simultaneously per batch. Higher volume uploads are automatically queued for background processing.',
     },
     {
       q: 'Can I export candidates to Excel reports?',
@@ -67,7 +66,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#F8F5F1] text-[#2B241F] font-sans relative overflow-x-hidden">
       {/* Top Sticky Navigation Bar */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-[#FAF6F1]/90 backdrop-blur-md border-b border-[#E8E2D9]">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0F2C59] via-[#0047AB] to-[#2563EB] p-1 flex items-center justify-center shrink-0 shadow-md border border-blue-400/30">
               <img src="/logo.png" alt="AI Resume Analyzer Logo" className="w-full h-full object-contain rounded-lg" />
@@ -89,9 +88,8 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <Show when="signed-in">
+            {mounted && (user || token) ? (
               <div className="flex items-center gap-3">
-                <UserButton showName />
                 <Link
                   href="/dashboard"
                   className="sleek-btn-primary text-xs"
@@ -100,261 +98,211 @@ export default function HomePage() {
                   <span>Open Dashboard</span>
                 </Link>
               </div>
-            </Show>
-
-            <Show when="signed-out">
+            ) : (
               <div className="flex items-center gap-3">
-                <SignInButton mode="modal">
-                  <button
-                    type="button"
-                    className="text-xs font-black text-[#60534A] hover:text-[#2B241F] transition-colors hidden sm:block cursor-pointer"
-                  >
-                    Sign In
-                  </button>
-                </SignInButton>
+                <Link
+                  href="/login"
+                  className="text-xs font-black text-[#60534A] hover:text-[#2B241F] transition-colors hidden sm:block cursor-pointer"
+                >
+                  Sign In
+                </Link>
 
-                <SignUpButton mode="modal">
-                  <button
-                    type="button"
-                    className="sleek-btn-primary cursor-pointer text-xs"
-                  >
-                    <span>Get Started</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </SignUpButton>
+                <Link
+                  href="/register"
+                  className="sleek-btn-primary cursor-pointer text-xs"
+                >
+                  <span>Get Started</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
-            </Show>
+            )}
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="pt-36 pb-20 relative overflow-hidden bg-gradient-to-b from-[#F8F5F1] via-[#FAF6F1] to-[#EFE7DE]">
-        <div className="max-w-4xl mx-auto px-6 text-center space-y-8 relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#EFE7DE] border border-[#E2D7CB] text-[#0F2C59] text-xs font-black uppercase tracking-wider shadow-sm">
-            <Sparkles className="w-4 h-4 text-[#0047AB]" />
-            <span>Next-Gen Resume Parsing Engine</span>
-          </div>
+      <section className="pt-32 sm:pt-40 pb-20 px-4 sm:px-6 max-w-7xl mx-auto text-center space-y-8 relative">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#EFE7DE] border border-[#E2D7CB] text-xs font-extrabold text-[#0047AB] shadow-sm">
+          <Sparkles className="w-4 h-4 text-[#0047AB]" />
+          <span>Enterprise Bulk Candidate Evaluation Engine</span>
+        </div>
 
-          <h1 className="text-4xl sm:text-6xl font-black text-[#2B241F] tracking-tight leading-tight">
-            AI-Powered Bulk <br className="hidden sm:block" />
-            <span className="bg-gradient-to-r from-[#0F2C59] via-[#0047AB] to-[#2563EB] bg-clip-text text-transparent">
-              Resume Analyzer
-            </span> & ATS Matcher
-          </h1>
+        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-[#2B241F] tracking-tight leading-tight max-w-4xl mx-auto">
+          AI-Powered Bulk <br className="hidden sm:block" />
+          <span className="bg-gradient-to-r from-[#0F2C59] via-[#0047AB] to-[#2563EB] bg-clip-text text-transparent">
+            Resume Analyzer
+          </span> & ATS Matcher
+        </h1>
 
-          <p className="text-base sm:text-lg text-[#60534A] max-w-2xl mx-auto font-semibold leading-relaxed">
-            Upload hundreds of candidate CVs in seconds. Extract 100% accurate skills, contact details, education, work experience, and generate instant Job Description match scoring reports.
-          </p>
+        <p className="text-base sm:text-lg text-[#60534A] max-w-2xl mx-auto font-semibold leading-relaxed">
+          Upload hundreds of candidate CVs in seconds. Extract 100% accurate skills, contact details, education, work experience, and generate instant Job Description match scoring reports.
+        </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-            <Show when="signed-in">
-              <Link href="/dashboard" className="sleek-btn-primary text-sm py-4 px-8 shadow-xl w-full sm:w-auto">
-                <span>Go to Dashboard</span>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+          {mounted && (user || token) ? (
+            <Link href="/dashboard" className="sleek-btn-primary text-sm py-4 px-8 shadow-xl w-full sm:w-auto">
+              <span>Go to Dashboard</span>
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
+              <Link
+                href="/register"
+                className="sleek-btn-primary text-sm py-4 px-8 shadow-xl w-full sm:w-auto cursor-pointer"
+              >
+                <span>Get Started Now</span>
                 <ArrowRight className="w-5 h-5" />
               </Link>
-            </Show>
 
-            <Show when="signed-out">
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-                <SignUpButton mode="modal">
-                  <button
-                    type="button"
-                    className="sleek-btn-primary text-sm py-4 px-8 shadow-xl w-full sm:w-auto cursor-pointer"
-                  >
-                    <span>Get Started Now</span>
-                    <ArrowRight className="w-5 h-5" />
-                  </button>
-                </SignUpButton>
+              <Link
+                href="/login"
+                className="sleek-btn-secondary text-sm py-4 px-8 w-full sm:w-auto cursor-pointer"
+              >
+                <span>Recruiter Sign In</span>
+              </Link>
+            </div>
+          )}
+        </div>
 
-                <SignInButton mode="modal">
-                  <button
-                    type="button"
-                    className="sleek-btn-secondary text-sm py-4 px-8 w-full sm:w-auto cursor-pointer"
-                  >
-                    <span>Recruiter Sign In</span>
-                  </button>
-                </SignInButton>
+        {/* Feature Badges */}
+        <div className="pt-10 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto text-xs font-bold text-[#60534A]">
+          <div className="p-4 rounded-2xl bg-white border border-[#E8E2D9] shadow-sm flex items-center justify-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#1E6B43]" />
+            <span>PDF & DOCX Support</span>
+          </div>
+          <div className="p-4 rounded-2xl bg-white border border-[#E8E2D9] shadow-sm flex items-center justify-center gap-2">
+            <Zap className="w-4 h-4 text-[#0047AB]" />
+            <span>1-Click Excel Export</span>
+          </div>
+          <div className="p-4 rounded-2xl bg-white border border-[#E8E2D9] shadow-sm flex items-center justify-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-[#7A3E65]" />
+            <span>100% Multi-Tenant Data</span>
+          </div>
+          <div className="p-4 rounded-2xl bg-white border border-[#E8E2D9] shadow-sm flex items-center justify-center gap-2">
+            <Award className="w-4 h-4 text-[#0F2C59]" />
+            <span>ATS Match Scoring</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section id="features" className="py-20 px-4 sm:px-6 bg-white border-y border-[#E8E2D9]">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="text-center space-y-3">
+            <div className="text-xs font-black uppercase tracking-wider text-[#0047AB]">High Concurrency Feature Suite</div>
+            <h2 className="text-2xl sm:text-4xl font-black text-[#2B241F]">Built Specifically for Modern Recruiters</h2>
+            <p className="text-xs sm:text-sm font-semibold text-[#60534A] max-w-xl mx-auto">Automate candidate shortlisting with intelligent JD matching and exportable Excel dossiers</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            <div className="p-6 sm:p-8 rounded-3xl bg-[#FAF6F1] border border-[#E8E2D9] space-y-4 hover:border-[#0047AB] transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0047AB] flex items-center justify-center border border-blue-100 shadow-sm">
+                <UploadCloud className="w-6 h-6" />
               </div>
-            </Show>
-          </div>
+              <h3 className="text-lg font-black text-[#2B241F]">Bulk Folder Uploads</h3>
+              <p className="text-xs text-[#60534A] leading-relaxed">
+                Drag and drop entire folders of candidate resumes in PDF or DOCX format. High concurrency workers parse files in parallel.
+              </p>
+            </div>
 
-          {/* Quick Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs font-bold text-[#60534A]">
-            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-[#1E6B43]" /> Sub-5ms CV Speed</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-[#1E6B43]" /> 100% Skill Overlap</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-[#1E6B43]" /> Formatted Excel Reports</span>
+            <div className="p-6 sm:p-8 rounded-3xl bg-[#FAF6F1] border border-[#E8E2D9] space-y-4 hover:border-[#0047AB] transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#7A3E65] flex items-center justify-center border border-purple-100 shadow-sm">
+                <Users className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-black text-[#2B241F]">Instant ATS Ranking</h3>
+              <p className="text-xs text-[#60534A] leading-relaxed">
+                Compare candidate skill sets, work experience years, and qualifications directly against target Job Descriptions with percentage match scores.
+              </p>
+            </div>
+
+            <div className="p-6 sm:p-8 rounded-3xl bg-[#FAF6F1] border border-[#E8E2D9] space-y-4 hover:border-[#0047AB] transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#1E6B43] flex items-center justify-center border border-emerald-100 shadow-sm">
+                <FileSpreadsheet className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-black text-[#2B241F]">Export to Excel</h3>
+              <p className="text-xs text-[#60534A] leading-relaxed">
+                Generate structured 1-click formatted Excel reports (.xlsx) containing candidate rankings, missing skills, and contact profiles.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Metrics Counter Bar */}
-      <section className="py-12 bg-white border-y border-[#E8E2D9]">
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-          <div>
-            <div className="text-3xl sm:text-4xl font-black text-[#0047AB]">&lt;5 ms</div>
-            <div className="text-xs font-bold text-[#60534A] mt-1">Average Parsing Speed</div>
-          </div>
-          <div>
-            <div className="text-3xl sm:text-4xl font-black text-[#1E6B43]">99.8%</div>
-            <div className="text-xs font-bold text-[#60534A] mt-1">Skill Extraction Precision</div>
-          </div>
-          <div>
-            <div className="text-3xl sm:text-4xl font-black text-[#7A3E65]">100%</div>
-            <div className="text-xs font-bold text-[#60534A] mt-1">Malware Binary Quarantined</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Showcase Grid */}
-      <section id="features" className="py-20 max-w-7xl mx-auto px-6 space-y-12">
+      {/* How It Works */}
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto space-y-12">
         <div className="text-center space-y-3">
-          <span className="text-xs font-black uppercase tracking-wider text-[#0047AB]">Core Platform Capabilities</span>
-          <h2 className="text-3xl font-black text-[#2B241F]">Built for Modern Talent Acquisition</h2>
+          <div className="text-xs font-black uppercase tracking-wider text-[#0047AB]">Streamlined Workflow</div>
+          <h2 className="text-2xl sm:text-4xl font-black text-[#2B241F]">Evaluate Resumes in 3 Simple Steps</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="sleek-card p-8 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#0F2C59] text-white flex items-center justify-center shadow-md">
-              <UploadCloud className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-black text-[#2B241F]">Bulk CV Parsing</h3>
-            <p className="text-xs font-semibold text-[#60534A] leading-relaxed">
-              Upload PDF, DOCX, and image resumes in bulk. Automatic text normalization and contact details extraction.
-            </p>
+          <div className="p-6 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative">
+            <span className="text-4xl font-black text-[#0047AB]/20 font-mono absolute top-4 right-6">01</span>
+            <h4 className="text-base font-black text-[#2B241F] mb-2">Upload Candidate Batch</h4>
+            <p className="text-xs text-[#60534A]">Upload individual resume files or select an entire folder of candidate documents.</p>
           </div>
 
-          <div className="sleek-card p-8 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#0047AB] text-white flex items-center justify-center shadow-md">
-              <Zap className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-black text-[#2B241F]">AI Job Description Matcher</h3>
-            <p className="text-xs font-semibold text-[#60534A] leading-relaxed">
-              Paste target Job Description requirements and instantly rank candidate resumes by skill match percentage.
-            </p>
+          <div className="p-6 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative">
+            <span className="text-4xl font-black text-[#0047AB]/20 font-mono absolute top-4 right-6">02</span>
+            <h4 className="text-base font-black text-[#2B241F] mb-2">Enter Job Description</h4>
+            <p className="text-xs text-[#60534A]">Paste target Job Description requirements to run intelligent skill matching.</p>
           </div>
 
-          <div className="sleek-card p-8 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#1E6B43] text-white flex items-center justify-center shadow-md">
-              <FileSpreadsheet className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-black text-[#2B241F]">Formatted Excel Reports</h3>
-            <p className="text-xs font-semibold text-[#60534A] leading-relaxed">
-              Generate formatted Excel dossiers with ATS scores, missing skills, candidate contacts, and experience badges.
-            </p>
+          <div className="p-6 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative">
+            <span className="text-4xl font-black text-[#0047AB]/20 font-mono absolute top-4 right-6">03</span>
+            <h4 className="text-base font-black text-[#2B241F] mb-2">Inspect & Export Report</h4>
+            <p className="text-xs text-[#60534A]">View candidate ranking dossiers and download formatted Excel report sheets.</p>
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 bg-[#EFE7DE] border-y border-[#E2D7CB]">
-        <div className="max-w-7xl mx-auto px-6 space-y-12">
-          <div className="text-center space-y-3">
-            <span className="text-xs font-black uppercase tracking-wider text-[#0047AB]">Workflow Overview</span>
-            <h2 className="text-3xl font-black text-[#2B241F]">4 Simple Steps to Evaluate Talent</h2>
+      {/* FAQ Accordion */}
+      <section id="faq" className="py-20 px-4 sm:px-6 bg-white border-t border-[#E8E2D9]">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl sm:text-3xl font-black text-[#2B241F]">Frequently Asked Questions</h2>
+            <p className="text-xs sm:text-sm font-semibold text-[#60534A]">Everything you need to know about the AI Resume Analyzer</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="p-6 rounded-3xl bg-white border border-[#E8E2D9] space-y-3">
-              <span className="text-xs font-black text-[#0047AB] bg-[#EFE7DE] px-3 py-1 rounded-full">STEP 01</span>
-              <h4 className="text-base font-black text-[#2B241F]">Upload Files</h4>
-              <p className="text-xs font-semibold text-[#60534A]">Drag & drop candidate CVs (PDF, DOCX, PNG, JPG).</p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-white border border-[#E8E2D9] space-y-3">
-              <span className="text-xs font-black text-[#0047AB] bg-[#EFE7DE] px-3 py-1 rounded-full">STEP 02</span>
-              <h4 className="text-base font-black text-[#2B241F]">Input Target JD</h4>
-              <p className="text-xs font-semibold text-[#60534A]">Paste job requirements & required skill criteria.</p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-white border border-[#E8E2D9] space-y-3">
-              <span className="text-xs font-black text-[#0047AB] bg-[#EFE7DE] px-3 py-1 rounded-full">STEP 03</span>
-              <h4 className="text-base font-black text-[#2B241F]">Review Rankings</h4>
-              <p className="text-xs font-semibold text-[#60534A]">Filter candidates by ATS score, skills, and experience level.</p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-white border border-[#E8E2D9] space-y-3">
-              <span className="text-xs font-black text-[#0047AB] bg-[#EFE7DE] px-3 py-1 rounded-full">STEP 04</span>
-              <h4 className="text-base font-black text-[#2B241F]">Export & Share</h4>
-              <p className="text-xs font-semibold text-[#60534A]">Export candidate dossiers to Excel spreadsheets in 1 click.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Accordion Section */}
-      <section id="faq" className="py-20 max-w-4xl mx-auto px-6 space-y-8">
-        <div className="text-center space-y-3">
-          <span className="text-xs font-black uppercase tracking-wider text-[#0047AB]">Frequently Asked Questions</span>
-          <h2 className="text-3xl font-black text-[#2B241F]">Everything You Need to Know</h2>
-        </div>
-
-        <div className="space-y-4">
-          {faqs.map((faq, idx) => (
-            <div key={idx} className="rounded-2xl bg-white border border-[#E8E2D9] overflow-hidden shadow-sm transition-all">
-              <button
-                onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                className="w-full text-left p-6 flex items-center justify-between font-black text-sm text-[#2B241F] hover:bg-[#FAF6F1]"
+          <div className="space-y-4">
+            {faqs.map((faq, idx) => (
+              <div
+                key={idx}
+                className="border border-[#E8E2D9] rounded-2xl overflow-hidden transition-all bg-[#FAF6F1]"
               >
-                <span>{faq.q}</span>
-                {openFaq === idx ? <ChevronUp className="w-4 h-4 text-[#0047AB]" /> : <ChevronDown className="w-4 h-4 text-[#8C7E72]" />}
-              </button>
-
-              {openFaq === idx && (
-                <div className="px-6 pb-6 text-xs font-semibold text-[#60534A] leading-relaxed border-t border-[#F1ECE6] pt-4">
-                  {faq.a}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA Footer Banner */}
-      <section className="py-20 bg-gradient-to-tr from-[#0F2C59] via-[#0047AB] to-[#2563EB] text-white text-center">
-        <div className="max-w-3xl mx-auto px-6 space-y-6">
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight">Ready to Accelerate Your Hiring?</h2>
-          <p className="text-xs sm:text-sm font-medium text-blue-100 max-w-lg mx-auto">
-            Join recruiters saving 20+ hours every week with AI-powered resume analysis.
-          </p>
-          <div className="pt-4">
-            <Show when="signed-in">
-              <Link href="/dashboard" className="px-8 py-4 rounded-2xl bg-white text-[#0F2C59] font-black text-sm shadow-xl hover:bg-blue-50 transition-all inline-flex items-center gap-2 cursor-pointer font-heading">
-                <span>Go to Dashboard</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </Show>
-            <Show when="signed-out">
-              <SignUpButton mode="modal">
                 <button
-                  type="button"
-                  className="px-8 py-4 rounded-2xl bg-white text-[#0F2C59] font-black text-sm shadow-xl hover:bg-blue-50 transition-all inline-flex items-center gap-2 cursor-pointer font-heading"
+                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                  className="w-full p-5 text-left flex items-center justify-between font-black text-sm text-[#2B241F] cursor-pointer"
                 >
-                  <span>Start Evaluating Candidates</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>{faq.q}</span>
+                  {openFaq === idx ? (
+                    <ChevronUp className="w-4 h-4 text-[#0047AB] shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-[#8C7E72] shrink-0" />
+                  )}
                 </button>
-              </SignUpButton>
-            </Show>
+
+                {openFaq === idx && (
+                  <div className="p-5 pt-0 text-xs font-medium text-[#60534A] leading-relaxed border-t border-[#E8E2D9]/60">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Official Footer */}
-      <footer className="py-12 bg-[#FAF6F1] border-t border-[#E8E2D9] text-xs font-bold text-[#60534A]">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0F2C59] via-[#0047AB] to-[#2563EB] p-1 flex items-center justify-center shrink-0 border border-blue-400/30">
-              <img src="/logo.png" alt="AI Resume Analyzer Logo Icon" className="w-full h-full object-contain rounded" />
+      {/* Footer */}
+      <footer className="py-10 border-t border-[#E8E2D9] bg-[#FAF6F1] text-xs font-semibold text-[#60534A]">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-[#0F2C59] p-0.5 flex items-center justify-center text-white font-black text-[10px]">
+              AI
             </div>
-            <span className="font-black text-[#2B241F] tracking-wider uppercase">AI RESUME ANALYZER</span>
+            <span className="font-black text-[#2B241F]">AI Resume Analyzer Portal</span>
           </div>
-
-          <p>© {new Date().getFullYear()} AI Resume Analyzer Engine. All rights reserved.</p>
-
-          <div className="flex items-center gap-6">
-            <a href="#features" className="hover:text-[#0F2C59]">Features</a>
-            <a href="#faq" className="hover:text-[#0F2C59]">FAQ</a>
-          </div>
+          <p>© {new Date().getFullYear()} AI Resume Analyzer. Multi-tenant Recruiter Enterprise System.</p>
         </div>
       </footer>
     </div>

@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.core.security import decode_token, get_password_hash
+from app.core.security import decode_token
 from app.models.models import Recruiter
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
@@ -15,11 +15,16 @@ def get_current_recruiter(
 ) -> Recruiter:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials or token expired",
+        detail="Could not validate credentials or session expired. Please sign in again.",
         headers={"WWW-Authenticate": "Bearer"},
     )
     
     auth_token = token
+    if not auth_token:
+        auth_header = req.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            auth_token = auth_header.split(" ")[1]
+
     if not auth_token:
         auth_token = req.query_params.get("token")
         
@@ -28,37 +33,24 @@ def get_current_recruiter(
 
     recruiter_id: Optional[str] = None
 
-    # 1. Try decoding local JWT token
+    # Decode local JWT token
     payload = decode_token(auth_token)
     if payload and isinstance(payload, dict):
         recruiter_id = payload.get("sub")
 
-    # 2. Fallback to Clerk User ID or Session Token
     if not recruiter_id:
-        if auth_token.startswith("user_") or "clerk" in auth_token.lower() or len(auth_token) >= 5:
-            recruiter_id = auth_token
+        recruiter_id = auth_token
 
     if not recruiter_id:
         raise credentials_exception
 
-    # 3. Fetch or auto-provision UNIQUE isolated Recruiter record for this specific user
+    # Query matching recruiter record from PostgreSQL
     recruiter = db.query(Recruiter).filter(
         (Recruiter.id == recruiter_id) | (Recruiter.email == recruiter_id)
     ).first()
 
     if not recruiter:
-        user_email = recruiter_id if "@" in recruiter_id else f"{recruiter_id}@clerk.user"
-        recruiter = Recruiter(
-            id=recruiter_id,
-            email=user_email,
-            name="Recruiter User",
-            company="Recruitment Agency",
-            password_hash=get_password_hash("ClerkSecurePass123!"),
-            is_admin=False
-        )
-        db.add(recruiter)
-        db.commit()
-        db.refresh(recruiter)
+        raise credentials_exception
 
     return recruiter
 
