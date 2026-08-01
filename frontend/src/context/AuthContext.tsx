@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 
 interface RecruiterUser {
@@ -43,6 +43,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
+    // Check for Firebase Google Redirect login result
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result && result.user) {
+          const gUser = result.user;
+          const response = await api.post('/api/auth/google-login', {
+            email: gUser.email,
+            name: gUser.displayName || 'Google Recruiter',
+            google_uid: gUser.uid,
+            photo_url: gUser.photoURL || '',
+          });
+
+          if (response.data && response.data.access_token) {
+            const recruiterObj = {
+              id: response.data.recruiter_id,
+              recruiter_id: response.data.recruiter_id,
+              email: response.data.email,
+              name: response.data.name,
+              full_name: response.data.name,
+              company: response.data.company || 'Google Account',
+              is_admin: response.data.is_admin,
+              avatar_url: gUser.photoURL || response.data.avatar_url || '',
+            };
+
+            localStorage.setItem('token', response.data.access_token);
+            localStorage.setItem('recruiter', JSON.stringify(recruiterObj));
+            setToken(response.data.access_token);
+            setUser(recruiterObj);
+            router.push('/dashboard');
+          }
+        }
+      })
+      .catch((e) => {
+        console.warn('Redirect auth check complete');
+      });
+
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('recruiter');
 
@@ -137,6 +173,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (err: any) {
       console.error('Google Sign In Error:', err);
+      if (err.code === 'auth/popup-blocked') {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch (redirectErr: any) {
+          throw new Error('Popup blocked by browser. Please allow popups for this site or disable popup blocker.');
+        }
+      }
       if (err.code === 'auth/unauthorized-domain') {
         const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'your deployment domain';
         throw new Error(`Firebase Domain Authorization Required: Add '${currentDomain}' to Firebase Console -> Authentication -> Settings -> Authorized domains.`);
