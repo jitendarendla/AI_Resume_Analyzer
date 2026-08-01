@@ -6,10 +6,10 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     
-    # Firebase Realtime Database
+    # Firebase Realtime Database Regional URL
     FIREBASE_DATABASE_URL: str = os.getenv(
         "FIREBASE_DATABASE_URL",
-        "https://ai-resume-analyzer-9cd34-default-rtdb.firebaseio.com"
+        "https://ai-resume-analyzer-9cd34-default-rtdb.asia-southeast1.firebasedatabase.app"
     )
 
     # Database Settings (Legacy / Fallback)
