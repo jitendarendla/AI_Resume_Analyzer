@@ -53,7 +53,7 @@ def get_current_recruiter(
             email=user_email,
             name="Recruiter User",
             company="Recruitment Agency",
-            hashed_password=get_password_hash("ClerkSecurePass123!"),
+            password_hash=get_password_hash("ClerkSecurePass123!"),
             is_admin=False
         )
         db.add(recruiter)
