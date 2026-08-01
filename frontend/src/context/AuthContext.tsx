@@ -137,6 +137,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (err: any) {
       console.error('Google Sign In Error:', err);
+      if (err.code === 'auth/unauthorized-domain') {
+        const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'your deployment domain';
+        throw new Error(`Firebase Domain Authorization Required: Add '${currentDomain}' to Firebase Console -> Authentication -> Settings -> Authorized domains.`);
+      }
       throw new Error(err.response?.data?.detail || err.message || 'Google sign in failed.');
     }
   };
