@@ -45,6 +45,15 @@ class GoogleLoginRequest(BaseModel):
     google_uid: Optional[str] = None
     photo_url: Optional[str] = None
 
+class SetPasswordRequest(BaseModel):
+    new_password: str = Field(..., min_length=6)
+    confirm_password: str = Field(..., min_length=6)
+
+class ChangePasswordRequest(BaseModel):
+    current_password: Optional[str] = None
+    new_password: str = Field(..., min_length=6)
+    confirm_password: str = Field(..., min_length=6)
+
 @router.post("/register", response_model=dict, status_code=status.HTTP_201_CREATED)
 def register_recruiter(data: RecruiterRegister, req: Request, db: Session = Depends(get_db)):
     existing = db.query(Recruiter).filter(Recruiter.email == data.email).first()
@@ -246,6 +255,47 @@ def reset_password_with_otp(body: ResetPasswordOTPRequest, db: Session = Depends
     db.commit()
 
     return {"message": "Password reset successfully. You can now login with your new password."}
+
+@router.post("/set-password")
+def set_google_account_password(
+    data: SetPasswordRequest,
+    recruiter: Recruiter = Depends(get_current_recruiter),
+    db: Session = Depends(get_db)
+):
+    if data.new_password != data.confirm_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password and confirm password do not match."
+        )
+
+    recruiter.password_hash = get_password_hash(data.new_password)
+    db.commit()
+
+    return {"message": "Password successfully created for your Google Account. You can now log in using your email and password as well."}
+
+@router.post("/change-password")
+def change_recruiter_password(
+    data: ChangePasswordRequest,
+    recruiter: Recruiter = Depends(get_current_recruiter),
+    db: Session = Depends(get_db)
+):
+    if data.new_password != data.confirm_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password and confirm password do not match."
+        )
+
+    if data.current_password and recruiter.password_hash:
+        if not verify_password(data.current_password, recruiter.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect current password."
+            )
+
+    recruiter.password_hash = get_password_hash(data.new_password)
+    db.commit()
+
+    return {"message": "Account password updated successfully. Please log in with your new password."}
 
 @router.get("/me")
 def get_current_user_profile(recruiter: Recruiter = Depends(get_current_recruiter)):
