@@ -172,20 +172,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return recruiterObj;
       }
     } catch (err: any) {
-      console.error('Google Sign In Error:', err);
-      if (err.code === 'auth/popup-blocked') {
-        try {
-          await signInWithRedirect(auth, googleProvider);
-          return;
-        } catch (redirectErr: any) {
-          throw new Error('Popup blocked by browser. Please allow popups for this site or disable popup blocker.');
-        }
-      }
+      console.warn('Popup login fallback to Redirect mode:', err);
       if (err.code === 'auth/unauthorized-domain') {
         const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'your deployment domain';
         throw new Error(`Firebase Domain Authorization Required: Add '${currentDomain}' to Firebase Console -> Authentication -> Settings -> Authorized domains.`);
       }
-      throw new Error(err.response?.data?.detail || err.message || 'Google sign in failed.');
+      
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (redirectErr: any) {
+        throw new Error(redirectErr.message || 'Google Sign In failed.');
+      }
     }
   };
 
