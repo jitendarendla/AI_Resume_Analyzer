@@ -21,14 +21,18 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-// Analytics instance (safely initialized for browser SSR environments)
+// Analytics instance (safely wrapped for clients with AdBlock extensions)
 let analytics: Analytics | null = null;
 if (typeof window !== "undefined") {
   isSupported().then((supported) => {
     if (supported) {
-      analytics = getAnalytics(app);
+      try {
+        analytics = getAnalytics(app);
+      } catch (e) {
+        // Silently handled for clients with active AdBlockers
+      }
     }
-  });
+  }).catch(() => {});
 }
 
 export { app, auth, googleProvider, analytics };
