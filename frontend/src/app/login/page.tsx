@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { api } from '@/lib/api';
 import { Mail, Lock, LogIn, AlertCircle, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
@@ -14,7 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const { loginUser, loginWithGoogle } = useAuth();
+  const { loginWithFirebaseEmail, loginWithGoogle } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,18 +22,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await api.post('/api/auth/login', {
-        username: email.trim(),
-        password: password,
-      });
-
-      if (response.data && response.data.access_token) {
-        loginUser(response.data);
-      } else {
-        setError('Invalid response from authentication server.');
-      }
+      await loginWithFirebaseEmail(email.trim(), password);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Invalid email or password credentials.');
+      setError(err.message || 'Invalid Firebase email or password credentials.');
     } finally {
       setLoading(false);
     }
@@ -65,7 +55,7 @@ export default function LoginPage() {
           </Link>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-[#2B241F]">Recruiter Sign In</h1>
-            <p className="text-xs font-semibold text-[#60534A] mt-1">Access your bulk resume evaluation dashboard</p>
+            <p className="text-xs font-semibold text-[#60534A] mt-1">Firebase Authentication & PostgreSQL Database</p>
           </div>
         </div>
 
@@ -164,7 +154,7 @@ export default function LoginPage() {
             {loading ? (
               <span className="flex items-center gap-2 justify-center">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Authenticating...</span>
+                <span>Authenticating with Firebase...</span>
               </span>
             ) : (
               <span className="flex items-center gap-2 justify-center">

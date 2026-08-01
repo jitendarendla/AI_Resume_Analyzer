@@ -3,7 +3,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
-import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { 
+  signInWithPopup, 
+  signInWithRedirect, 
+  getRedirectResult,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut
+} from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 
 interface RecruiterUser {
@@ -22,6 +29,8 @@ interface AuthContextType {
   token: string | null;
   loginUser: (tokenData: any) => void;
   loginWithGoogle: () => Promise<any>;
+  loginWithFirebaseEmail: (email: string, password: string) => Promise<any>;
+  registerWithFirebaseEmail: (email: string, password: string, name: string, company: string) => Promise<any>;
   logoutUser: () => void;
   isLoading: boolean;
 }
@@ -31,6 +40,8 @@ const AuthContext = createContext<AuthContextType>({
   token: null,
   loginUser: () => {},
   loginWithGoogle: async () => {},
+  loginWithFirebaseEmail: async () => {},
+  registerWithFirebaseEmail: async () => {},
   logoutUser: () => {},
   isLoading: true,
 });
@@ -94,7 +105,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Failed to parse recruiter user');
       }
 
-      // Refresh current user profile from backend
+      // Refresh current user profile from PostgreSQL backend
       api.get('/api/auth/me', { headers: { Authorization: `Bearer ${storedToken}` } })
         .then((res) => {
           if (res.data) {
@@ -138,6 +149,85 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(formattedUser);
     }
     router.push('/dashboard');
+  };
+
+  const loginWithFirebaseEmail = async (email: string, password: string) => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const fbUser = userCredential.user;
+
+      const response = await api.post('/api/auth/google-login', {
+        email: fbUser.email,
+        name: fbUser.displayName || email.split('@')[0],
+        google_uid: fbUser.uid,
+        photo_url: fbUser.photoURL || '',
+      });
+
+      if (response.data && response.data.access_token) {
+        const recruiterObj = {
+          id: response.data.recruiter_id,
+          recruiter_id: response.data.recruiter_id,
+          email: response.data.email,
+          name: response.data.name,
+          full_name: response.data.name,
+          company: response.data.company || 'Firebase Recruiter',
+          is_admin: response.data.is_admin,
+          avatar_url: fbUser.photoURL || '',
+        };
+
+        localStorage.setItem('token', response.data.access_token);
+        localStorage.setItem('recruiter', JSON.stringify(recruiterObj));
+        setToken(response.data.access_token);
+        setUser(recruiterObj);
+        router.push('/dashboard');
+        return recruiterObj;
+      }
+    } catch (err: any) {
+      console.error('Firebase Email Login Error:', err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        throw new Error('Invalid email address or password.');
+      }
+      throw new Error(err.message || 'Firebase authentication failed.');
+    }
+  };
+
+  const registerWithFirebaseEmail = async (email: string, password: string, name: string, company: string) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const fbUser = userCredential.user;
+
+      const response = await api.post('/api/auth/google-login', {
+        email: fbUser.email,
+        name: name || fbUser.displayName || email.split('@')[0],
+        google_uid: fbUser.uid,
+        photo_url: '',
+      });
+
+      if (response.data && response.data.access_token) {
+        const recruiterObj = {
+          id: response.data.recruiter_id,
+          recruiter_id: response.data.recruiter_id,
+          email: response.data.email,
+          name: name || response.data.name,
+          full_name: name || response.data.name,
+          company: company || 'Firebase Recruiter',
+          is_admin: response.data.is_admin,
+        };
+
+        localStorage.setItem('token', response.data.access_token);
+        localStorage.setItem('recruiter', JSON.stringify(recruiterObj));
+        setToken(response.data.access_token);
+        setUser(recruiterObj);
+        router.push('/dashboard');
+        return recruiterObj;
+      }
+    } catch (err: any) {
+      console.error('Firebase Email Register Error:', err);
+      if (err.code === 'auth/email-already-in-use') {
+        throw new Error('Email address is already registered in Firebase.');
+      }
+      throw new Error(err.message || 'Firebase account creation failed.');
+    }
   };
 
   const loginWithGoogle = async () => {
@@ -187,6 +277,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logoutUser = () => {
+    try {
+      firebaseSignOut(auth);
+    } catch (e) {}
     localStorage.removeItem('token');
     localStorage.removeItem('recruiter');
     setUser(null);
@@ -195,7 +288,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loginUser, loginWithGoogle, logoutUser, isLoading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      loginUser, 
+      loginWithGoogle, 
+      loginWithFirebaseEmail, 
+      registerWithFirebaseEmail, 
+      logoutUser, 
+      isLoading 
+    }}>
       {children}
     </AuthContext.Provider>
   );

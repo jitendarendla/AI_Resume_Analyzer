@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { api } from '@/lib/api';
 import { User, Mail, Building, Lock, UserPlus, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -18,7 +17,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const { loginWithGoogle } = useAuth();
+  const { registerWithFirebaseEmail, loginWithGoogle } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,19 +38,10 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await api.post('/api/auth/register', {
-        name: name.trim(),
-        email: email.trim(),
-        company: company.trim() || 'Recruitment Agency',
-        password: password,
-      });
-
-      setSuccess('Account created successfully! Redirecting to sign in...');
-      setTimeout(() => {
-        router.push('/login');
-      }, 1500);
+      await registerWithFirebaseEmail(email.trim(), password, name.trim(), company.trim() || 'Recruitment Agency');
+      setSuccess('Firebase account created successfully! Redirecting...');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Account registration failed. Email may already be registered.');
+      setError(err.message || 'Firebase account creation failed.');
     } finally {
       setLoading(false);
     }
@@ -82,7 +72,7 @@ export default function RegisterPage() {
           </Link>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-[#2B241F]">Create Recruiter Account</h1>
-            <p className="text-xs font-semibold text-[#60534A] mt-1">Get started with AI bulk resume matching & ATS reporting</p>
+            <p className="text-xs font-semibold text-[#60534A] mt-1">Firebase Authentication & PostgreSQL Database</p>
           </div>
         </div>
 
@@ -233,7 +223,7 @@ export default function RegisterPage() {
             {loading ? (
               <span className="flex items-center gap-2 justify-center">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Creating Account...</span>
+                <span>Creating Firebase Account...</span>
               </span>
             ) : (
               <span className="flex items-center gap-2 justify-center">
