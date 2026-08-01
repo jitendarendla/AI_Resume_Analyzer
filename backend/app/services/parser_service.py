@@ -125,7 +125,7 @@ def extract_text_from_file(file_path: str) -> str:
             with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                 text = f.read()
     except Exception as e:
-        print(f"Error reading {file_path}: {e}")
+        print(f"[WARNING] Error reading {file_path}: {e}")
     return text.strip()
 
 def clean_candidate_name(raw_name: str, filename: str = "", email: str = "", raw_text: str = "") -> str:
@@ -180,10 +180,10 @@ def normalize_llm_dict(raw: dict) -> dict:
     if not isinstance(raw, dict):
         return {}
 
-    name = str(raw.get("name") or raw.get("full_name") or "").strip()
+    name = str(raw.get("name") or "").strip()
     email = str(raw.get("email") or "").strip()
-    phone = str(raw.get("phone") or raw.get("phone_number") or "").strip()
-    location = str(raw.get("location") or raw.get("city") or "").strip()
+    phone = str(raw.get("phone") or "").strip()
+    location = str(raw.get("location") or "").strip()
 
     raw_skills = raw.get("skills") or []
     skills = []
@@ -192,11 +192,11 @@ def normalize_llm_dict(raw: dict) -> dict:
             if isinstance(s, str) and s.strip():
                 skills.append(s.strip())
             elif isinstance(s, dict):
-                skills.extend([str(v).strip() for v in s.values() if v])
+                skills.extend([str(v).strip() for v in s.values() if str(v).strip()])
     elif isinstance(raw_skills, dict):
-        for v in raw_skills.values():
+        for k, v in raw_skills.items():
             if isinstance(v, list):
-                skills.extend([str(x).strip() for x in v if x])
+                skills.extend([str(x).strip() for x in v if str(x).strip()])
             elif isinstance(v, str) and v.strip():
                 skills.append(v.strip())
     elif isinstance(raw_skills, str):
@@ -240,7 +240,7 @@ def normalize_llm_dict(raw: dict) -> dict:
     }
 
 def parse_resume_with_llm(text: str) -> dict:
-    """Ultra-Fast Non-Blocking Local Ollama LLM Extractor (1.5s max window)."""
+    """Ultra-Fast Non-Blocking Local / Cloud LLM Extractor."""
     prompt = f"""
     Extract resume details into valid JSON:
     {{
@@ -260,36 +260,37 @@ def parse_resume_with_llm(text: str) -> dict:
     {text[:3000]}
     """
 
-    ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    ollama_model = os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b")
-
-    acquired = ollama_lock.acquire(blocking=False)
-    if acquired:
-        try:
-            url = f"{ollama_host}/api/generate"
-            payload = {
-                "model": ollama_model,
-                "prompt": prompt,
-                "format": "json",
-                "stream": False,
-                "keep_alive": "30m",
-                "options": {"temperature": 0.1}
-            }
-            req = urllib.request.Request(
-                url,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"}
-            )
-            with urllib.request.urlopen(req, timeout=1.5) as resp:
-                res_data = json.loads(resp.read().decode("utf-8"))
-                parsed_json = json.loads(res_data.get("response", "{}"))
-                normalized = normalize_llm_dict(parsed_json)
-                if normalized.get("name") or normalized.get("skills"):
-                    return normalized
-        except Exception:
-            pass
-        finally:
-            ollama_lock.release()
+    # Only run Ollama if explicitly enabled via environment variable
+    if os.getenv("ENABLE_OLLAMA") == "true":
+        ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        ollama_model = os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b")
+        acquired = ollama_lock.acquire(blocking=False)
+        if acquired:
+            try:
+                url = f"{ollama_host}/api/generate"
+                payload = {
+                    "model": ollama_model,
+                    "prompt": prompt,
+                    "format": "json",
+                    "stream": False,
+                    "keep_alive": "30m",
+                    "options": {"temperature": 0.1}
+                }
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req, timeout=1.0) as resp:
+                    res_data = json.loads(resp.read().decode("utf-8"))
+                    parsed_json = json.loads(res_data.get("response", "{}"))
+                    normalized = normalize_llm_dict(parsed_json)
+                    if normalized.get("name") or normalized.get("skills"):
+                        return normalized
+            except Exception:
+                pass
+            finally:
+                ollama_lock.release()
 
     gemini_key = os.getenv("GEMINI_API_KEY")
     openai_key = os.getenv("OPENAI_API_KEY")
@@ -318,7 +319,7 @@ def parse_resume_with_llm(text: str) -> dict:
             url = "https://api.openai.com/v1/chat/completions"
             payload = {
                 "model": "gpt-4o-mini",
-                "messages": [{"role": "system", "content": prompt}],
+                "messages": [{"role": "user", "content": prompt}],
                 "response_format": {"type": "json_object"}
             }
             req = urllib.request.Request(
@@ -441,7 +442,7 @@ def parse_resume_content(text: str, filename: str = "") -> dict:
     # Rule-based details as instant baseline (<1ms)
     rule_res = extract_rule_based_details(text, filename)
 
-    # Fast non-blocking LLM check (max 1.5s)
+    # Fast non-blocking LLM check
     llm_res = parse_resume_with_llm(text)
 
     if llm_res and isinstance(llm_res, dict):

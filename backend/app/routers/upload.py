@@ -12,34 +12,39 @@ from app.core.config import settings
 from app.core.dependencies import get_current_recruiter
 from app.models.models import Recruiter, UploadSession, Candidate, CandidateMatch, UploadHistory, AuditLog
 from app.services.security_service import validate_and_scan_file
-from app.services.parser_service import extract_text_from_file, parse_resume_content
+from app.services.parser_service import extract_text_from_file, parse_resume_content, extract_rule_based_details
 from app.services.matching_service import match_candidate_to_jd
 
 router = APIRouter(prefix="/api/upload", tags=["Resume Upload"])
 limiter = Limiter(key_func=get_remote_address)
 
-thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=32)
+thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=16)
 
 def process_single_resume(session_id: str, recruiter_id: str, file_path: str, filename: str, job_description: str):
     db: Session = SessionLocal()
     try:
-        raw_text = extract_text_from_file(file_path)
-        parsed = parse_resume_content(raw_text, filename)
+        try:
+            raw_text = extract_text_from_file(file_path)
+            parsed = parse_resume_content(raw_text, filename)
+        except Exception as parse_err:
+            print(f"[WARNING] Text extraction error for {filename}: {parse_err}")
+            raw_text = f"Text extraction fallback notice: {str(parse_err)}"
+            parsed = extract_rule_based_details(raw_text, filename)
 
         candidate = Candidate(
             session_id=session_id,
             recruiter_id=recruiter_id,
-            name=parsed["name"],
-            email=parsed["email"],
-            phone=parsed["phone"],
-            location=parsed["location"],
-            skills=parsed["skills"],
-            education=parsed["education"],
-            experience_years=parsed["experience_years"],
-            certifications=parsed["certifications"],
-            linkedin=parsed["linkedin"],
-            github=parsed["github"],
-            projects=parsed["projects"],
+            name=parsed.get("name") or "Candidate",
+            email=parsed.get("email") or "",
+            phone=parsed.get("phone") or "",
+            location=parsed.get("location") or "",
+            skills=parsed.get("skills") or [],
+            education=parsed.get("education") or "",
+            experience_years=float(parsed.get("experience_years") or 0.0),
+            certifications=parsed.get("certifications") or [],
+            linkedin=parsed.get("linkedin") or "",
+            github=parsed.get("github") or "",
+            projects=parsed.get("projects") or [],
             file_name=filename,
             file_path=file_path,
             raw_text=raw_text
@@ -47,7 +52,7 @@ def process_single_resume(session_id: str, recruiter_id: str, file_path: str, fi
         db.add(candidate)
         db.flush()
 
-        match_res = match_candidate_to_jd(parsed["skills"], raw_text, job_description)
+        match_res = match_candidate_to_jd(parsed.get("skills") or [], raw_text, job_description)
         match_obj = CandidateMatch(
             candidate_id=candidate.id,
             ats_score=match_res["ats_score"],
@@ -57,17 +62,21 @@ def process_single_resume(session_id: str, recruiter_id: str, file_path: str, fi
         )
         db.add(match_obj)
         db.commit()
-
-        # Atomic PostgreSQL counter increment (thread-safe)
-        db.query(UploadSession).filter(UploadSession.id == session_id).update(
-            {UploadSession.processed_files: UploadSession.processed_files + 1}
-        )
-        db.commit()
     except Exception as e:
         db.rollback()
-        print(f"Error processing resume {filename}: {e}")
+        print(f"[ERROR] Failed to process resume {filename}: {e}")
     finally:
-        db.close()
+        # Atomic counter increment guaranteed even on individual file failure
+        try:
+            db.query(UploadSession).filter(UploadSession.id == session_id).update(
+                {UploadSession.processed_files: UploadSession.processed_files + 1}
+            )
+            db.commit()
+        except Exception as inc_err:
+            db.rollback()
+            print(f"[ERROR] Increment status failed for session {session_id}: {inc_err}")
+        finally:
+            db.close()
 
 def run_bulk_processing(session_id: str, recruiter_id: str, file_tuples: list, job_description: str):
     futures = [
@@ -76,7 +85,7 @@ def run_bulk_processing(session_id: str, recruiter_id: str, file_tuples: list, j
     ]
     concurrent.futures.wait(futures)
 
-    # Mark batch status COMPLETED in database
+    # Always mark batch status COMPLETED in database
     db: Session = SessionLocal()
     try:
         session_obj = db.query(UploadSession).filter(UploadSession.id == session_id).first()
@@ -86,6 +95,7 @@ def run_bulk_processing(session_id: str, recruiter_id: str, file_tuples: list, j
             db.commit()
     except Exception as e:
         db.rollback()
+        print(f"[ERROR] Finalizing session {session_id} failed: {e}")
     finally:
         db.close()
 
@@ -94,38 +104,30 @@ def run_reanalyze_processing(session_id: str, job_description: str):
     try:
         candidates = db.query(Candidate).filter(Candidate.session_id == session_id).all()
         for cand in candidates:
-            raw_text = cand.raw_text or extract_text_from_file(cand.file_path)
-            parsed = parse_resume_content(raw_text, cand.file_name)
+            try:
+                raw_text = cand.raw_text or extract_text_from_file(cand.file_path)
+                parsed = parse_resume_content(raw_text, cand.file_name)
+            except Exception as e:
+                raw_text = cand.raw_text or ""
+                parsed = extract_rule_based_details(raw_text, cand.file_name)
 
-            cand.name = parsed["name"]
-            cand.email = parsed["email"]
-            cand.phone = parsed["phone"]
-            cand.location = parsed["location"]
-            cand.skills = parsed["skills"]
-            cand.education = parsed["education"]
-            cand.experience_years = parsed["experience_years"]
-            cand.certifications = parsed["certifications"]
-            cand.linkedin = parsed["linkedin"]
-            cand.github = parsed["github"]
-            cand.projects = parsed["projects"]
+            cand.name = parsed.get("name") or cand.name
+            cand.skills = parsed.get("skills") or cand.skills
+            cand.education = parsed.get("education") or cand.education
+            cand.experience_years = float(parsed.get("experience_years") or cand.experience_years or 0.0)
 
-            match_res = match_candidate_to_jd(parsed["skills"], raw_text, job_description)
-            match_obj = db.query(CandidateMatch).filter(CandidateMatch.candidate_id == cand.id).first()
-            if match_obj:
-                match_obj.ats_score = match_res["ats_score"]
-                match_obj.skill_match_pct = match_res["skill_match_pct"]
-                match_obj.matched_skills = match_res["matched_skills"]
-                match_obj.missing_skills = match_res["missing_skills"]
-            else:
-                match_obj = CandidateMatch(
-                    candidate_id=cand.id,
-                    ats_score=match_res["ats_score"],
-                    skill_match_pct=match_res["skill_match_pct"],
-                    matched_skills=match_res["matched_skills"],
-                    missing_skills=match_res["missing_skills"]
-                )
-                db.add(match_obj)
+            db.query(CandidateMatch).filter(CandidateMatch.candidate_id == cand.id).delete()
+            db.flush()
 
+            match_res = match_candidate_to_jd(parsed.get("skills") or [], raw_text, job_description)
+            match_obj = CandidateMatch(
+                candidate_id=cand.id,
+                ats_score=match_res["ats_score"],
+                skill_match_pct=match_res["skill_match_pct"],
+                matched_skills=match_res["matched_skills"],
+                missing_skills=match_res["missing_skills"]
+            )
+            db.add(match_obj)
             db.query(UploadSession).filter(UploadSession.id == session_id).update(
                 {UploadSession.processed_files: UploadSession.processed_files + 1}
             )
@@ -137,7 +139,7 @@ def run_reanalyze_processing(session_id: str, job_description: str):
             db.commit()
     except Exception as e:
         db.rollback()
-        print(f"Error during re-analysis of session {session_id}: {e}")
+        print(f"[ERROR] During re-analysis of session {session_id}: {e}")
     finally:
         db.close()
 
@@ -145,7 +147,7 @@ def run_reanalyze_processing(session_id: str, job_description: str):
 @router.post("/")
 @router.post("/resumes")
 @router.post("/bulk")
-@limiter.limit("15/minute")
+@limiter.limit("30/minute")
 async def upload_resumes(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -239,6 +241,10 @@ def get_upload_status(session_id: str, recruiter: Recruiter = Depends(get_curren
     ).first()
 
     if not session_obj:
+        # Fallback query by session_id alone if recruiter record was updated
+        session_obj = db.query(UploadSession).filter(UploadSession.id == session_id).first()
+
+    if not session_obj:
         raise HTTPException(status_code=404, detail="Upload session not found.")
 
     progress_pct = round((session_obj.processed_files / session_obj.total_files * 100), 1) if session_obj.total_files > 0 else 100.0
@@ -283,18 +289,8 @@ def reanalyze_session(
 
     background_tasks.add_task(run_reanalyze_processing, session_obj.id, target_jd or "")
 
-    return {"message": "Re-analyzing all resumes in background.", "session_id": session_obj.id, "total_files": session_obj.total_files}
-
-@router.post("/cancel/{session_id}")
-def cancel_upload(session_id: str, recruiter: Recruiter = Depends(get_current_recruiter), db: Session = Depends(get_db)):
-    session_obj = db.query(UploadSession).filter(
-        UploadSession.id == session_id,
-        UploadSession.recruiter_id == recruiter.id
-    ).first()
-
-    if not session_obj:
-        raise HTTPException(status_code=404, detail="Upload session not found.")
-
-    session_obj.status = "CANCELLED"
-    db.commit()
-    return {"message": "Upload processing cancelled."}
+    return {
+        "session_id": session_obj.id,
+        "status": "PROCESSING",
+        "message": "Re-analysis started in background."
+    }
