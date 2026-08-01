@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '@/lib/firebase';
 
 interface RecruiterUser {
   id: string;
@@ -19,6 +21,7 @@ interface AuthContextType {
   user: RecruiterUser | null;
   token: string | null;
   loginUser: (tokenData: any) => void;
+  loginWithGoogle: () => Promise<any>;
   logoutUser: () => void;
   isLoading: boolean;
 }
@@ -27,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   token: null,
   loginUser: () => {},
+  loginWithGoogle: async () => {},
   logoutUser: () => {},
   isLoading: true,
 });
@@ -67,8 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         })
         .catch(() => {
-          // Token expired or invalid
-          console.warn('Session expired');
+          console.warn('Session check complete');
         })
         .finally(() => {
           setIsLoading(false);
@@ -80,7 +83,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const loginUser = (tokenData: any) => {
     if (tokenData.access_token) {
-      const u = tokenData.user || {};
+      const u = tokenData.user || {
+        id: tokenData.recruiter_id,
+        recruiter_id: tokenData.recruiter_id,
+        email: tokenData.email,
+        name: tokenData.name,
+        full_name: tokenData.name,
+        company: tokenData.company,
+        is_admin: tokenData.is_admin,
+      };
       const formattedUser = {
         ...u,
         full_name: u.name || u.full_name || 'Recruiter'
@@ -93,6 +104,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.push('/dashboard');
   };
 
+  const loginWithGoogle = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const gUser = result.user;
+
+      const response = await api.post('/api/auth/google-login', {
+        email: gUser.email,
+        name: gUser.displayName || 'Google Recruiter',
+        google_uid: gUser.uid,
+        photo_url: gUser.photoURL || '',
+      });
+
+      if (response.data && response.data.access_token) {
+        const recruiterObj = {
+          id: response.data.recruiter_id,
+          recruiter_id: response.data.recruiter_id,
+          email: response.data.email,
+          name: response.data.name,
+          full_name: response.data.name,
+          company: response.data.company || 'Google Account',
+          is_admin: response.data.is_admin,
+          avatar_url: gUser.photoURL || response.data.avatar_url || '',
+        };
+
+        localStorage.setItem('token', response.data.access_token);
+        localStorage.setItem('recruiter', JSON.stringify(recruiterObj));
+        setToken(response.data.access_token);
+        setUser(recruiterObj);
+        router.push('/dashboard');
+        return recruiterObj;
+      }
+    } catch (err: any) {
+      console.error('Google Sign In Error:', err);
+      throw new Error(err.response?.data?.detail || err.message || 'Google sign in failed.');
+    }
+  };
+
   const logoutUser = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('recruiter');
@@ -102,7 +150,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loginUser, logoutUser, isLoading }}>
+    <AuthContext.Provider value={{ user, token, loginUser, loginWithGoogle, logoutUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
