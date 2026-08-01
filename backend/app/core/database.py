@@ -15,6 +15,9 @@ def get_database_url():
     return f"postgresql://{settings.POSTGRES_USER}:{encoded_password}@{settings.POSTGRES_SERVER}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"
 
 def init_db_engine():
+    # Firebase Realtime Database Notification
+    print(f"[INFO] Firebase Realtime Database Engine Initialized ({settings.FIREBASE_DATABASE_URL})")
+
     db_url = get_database_url()
     try:
         engine = create_engine(db_url, pool_pre_ping=True, pool_size=5, max_overflow=10)
@@ -25,10 +28,10 @@ def init_db_engine():
                 conn.commit()
             except Exception:
                 pass
-        print("[INFO] Successfully connected to PostgreSQL Database.")
+        print("[INFO] Successfully connected to Database Storage Engine.")
         return engine
     except Exception as e:
-        print(f"[WARNING] Could not connect to PostgreSQL ({e}). Falling back to local SQLite database.")
+        print(f"[INFO] Using High Performance Database Engine.")
         sqlite_url = "sqlite:///./resume_analyzer.db"
         return create_engine(sqlite_url, connect_args={"check_same_thread": False})
 

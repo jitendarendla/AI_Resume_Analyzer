@@ -6,7 +6,13 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     
-    # Database Settings
+    # Firebase Realtime Database
+    FIREBASE_DATABASE_URL: str = os.getenv(
+        "FIREBASE_DATABASE_URL",
+        "https://ai-resume-analyzer-9cd34-default-rtdb.firebaseio.com"
+    )
+
+    # Database Settings (Legacy / Fallback)
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "Sonu@801"
     POSTGRES_SERVER: str = "localhost"
