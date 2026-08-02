@@ -5,7 +5,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { KeyRound, Lock, ShieldCheck, CheckCircle2, AlertCircle, Send, RefreshCw } from 'lucide-react';
+import { KeyRound, Lock, ShieldCheck, CheckCircle2, AlertCircle, Send, RefreshCw, Mail, ArrowRight } from 'lucide-react';
 
 export default function ChangePasswordPage() {
   const [collapsed, setCollapsed] = useState(false);
@@ -13,9 +13,13 @@ export default function ChangePasswordPage() {
 
   const { user, logoutUser } = useAuth();
 
+  // Stage: 'email_verification' -> 'password_update' (NO steps shown above card)
+  const [stage, setStage] = useState<'email_verification' | 'password_update'>('email_verification');
+
   // Form states
-  const [currentPassword, setCurrentPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
+  const [verifiedOtpCode, setVerifiedOtpCode] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -26,6 +30,7 @@ export default function ChangePasswordPage() {
 
   const userEmail = user?.email || '';
 
+  // Action 1: Send OTP code to email
   const handleSendOTP = async () => {
     if (!userEmail) return;
     setError('');
@@ -42,18 +47,42 @@ export default function ChangePasswordPage() {
     }
   };
 
+  // Action 2: Verify Email OTP Code
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+
+    if (otpCode.length !== 6) {
+      setError('Please enter the 6-digit verification code sent to your email.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await api.post('/api/auth/verify-otp', {
+        email: userEmail,
+        otp_code: otpCode.trim()
+      });
+      setMessage('Email verified successfully! You can now update your password below.');
+      setVerifiedOtpCode(otpCode.trim());
+      setStage('password_update');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Invalid or expired OTP verification code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Action 3: Change Password with Old Password and Verified OTP
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setMessage('');
 
     if (!currentPassword) {
-      setError('Please enter your old password.');
-      return;
-    }
-
-    if (otpCode.length !== 6) {
-      setError('Please enter the 6-digit verification code sent to your email.');
+      setError('Please enter your old / current password.');
       return;
     }
 
@@ -72,7 +101,7 @@ export default function ChangePasswordPage() {
     try {
       const res = await api.post('/api/auth/change-password', {
         current_password: currentPassword,
-        otp_code: otpCode.trim(),
+        otp_code: verifiedOtpCode,
         new_password: newPassword,
         confirm_password: confirmPassword,
       });
@@ -95,14 +124,14 @@ export default function ChangePasswordPage() {
         <Navbar collapsed={collapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
         <main className="pt-20 sm:pt-24 lg:pt-28 p-4 sm:p-6 lg:p-8 max-w-xl mx-auto space-y-6">
-          {/* Page Header */}
+          {/* Page Header (No steps mentioned above card) */}
           <div className="flex items-center gap-3.5 p-5 sm:p-6 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm">
             <div className="p-3 rounded-2xl bg-blue-50 border border-blue-100 text-[#0047AB] shrink-0">
               <KeyRound className="w-6 h-6" />
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-[#2B241F]">Change Account Password</h1>
-              <p className="text-xs font-semibold text-[#60534A]">Verify identity with your old password and email verification code</p>
+              <p className="text-xs font-semibold text-[#60534A]">Securely update your password with email verification</p>
             </div>
           </div>
 
@@ -120,122 +149,176 @@ export default function ChangePasswordPage() {
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleChangePassword} className="bg-white border border-[#E8E2D9] rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
-            {/* Old / Current Password */}
-            <div>
-              <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-2">
-                Old / Current Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-3 focus:outline-none focus:border-[#0F2C59] font-bold"
-                />
+          {/* STAGE 1: Email Verification Card */}
+          {stage === 'email_verification' && (
+            <form onSubmit={handleVerifyOTP} className="bg-white border border-[#E8E2D9] rounded-3xl p-6 sm:p-8 shadow-sm space-y-5 animate-in fade-in">
+              <div>
+                <h2 className="text-base font-black text-[#2B241F]">Email Identity Verification</h2>
+                <p className="text-xs font-semibold text-[#60534A] mt-0.5">
+                  Verify your email address before setting a new password.
+                </p>
               </div>
-            </div>
 
-            {/* Email OTP Section */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider">
-                  Email Verification Code
+              <div>
+                <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-2">
+                  Recruiter Email
                 </label>
-                <button
-                  type="button"
-                  onClick={handleSendOTP}
-                  disabled={sendingOtp || !userEmail}
-                  className="text-xs font-black text-[#0047AB] hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                >
-                  {sendingOtp ? (
-                    <span className="flex items-center gap-1">
-                      <RefreshCw className="w-3 h-3 animate-spin" />
-                      <span>Sending OTP...</span>
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1">
-                      <Send className="w-3 h-3" />
-                      <span>Send OTP Code</span>
-                    </span>
-                  )}
-                </button>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
+                  <input
+                    type="email"
+                    disabled
+                    value={userEmail}
+                    className="w-full bg-[#FAF6F1]/80 border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-3 font-bold"
+                  />
+                </div>
               </div>
-              <div className="relative">
-                <ShieldCheck className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
-                <input
-                  type="text"
-                  maxLength={6}
-                  required
-                  placeholder="Enter 6-digit OTP code"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                  className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-3 focus:outline-none focus:border-[#0F2C59] font-bold font-mono tracking-wider"
-                />
-              </div>
-              <p className="text-[11px] font-semibold text-[#8C7E72] mt-1.5">
-                Click "Send OTP Code" to receive a 6-digit verification code at <span className="font-bold text-[#2B241F]">{userEmail}</span>.
-              </p>
-            </div>
 
-            {/* New Password */}
-            <div>
-              <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-2">
-                New Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-3 focus:outline-none focus:border-[#0F2C59] font-bold"
-                />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider">
+                    Enter Verification Code
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleSendOTP}
+                    disabled={sendingOtp || !userEmail}
+                    className="text-xs font-black text-[#0047AB] hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    {sendingOtp ? (
+                      <span className="flex items-center gap-1">
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <span>Sending Code...</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1">
+                        <Send className="w-3 h-3" />
+                        <span>Send OTP Code</span>
+                      </span>
+                    )}
+                  </button>
+                </div>
+                <div className="relative">
+                  <ShieldCheck className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
+                  <input
+                    type="text"
+                    maxLength={6}
+                    required
+                    placeholder="Enter 6-digit OTP code"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-3 focus:outline-none focus:border-[#0F2C59] font-bold font-mono tracking-wider"
+                  />
+                </div>
+                <p className="text-[11px] font-semibold text-[#8C7E72] mt-1.5">
+                  Click "Send OTP Code" to receive your verification code at <span className="font-bold text-[#2B241F]">{userEmail}</span>.
+                </p>
               </div>
-            </div>
 
-            {/* Confirm New Password */}
-            <div>
-              <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-2">
-                Confirm New Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-3 focus:outline-none focus:border-[#0F2C59] font-bold"
-                />
+              <button
+                type="submit"
+                disabled={loading || otpCode.length !== 6}
+                className="sleek-btn-primary w-full text-xs font-black py-3.5 cursor-pointer disabled:opacity-50 shadow-md flex items-center justify-center gap-2 mt-2"
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2 justify-center">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Verifying Code...</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2 justify-center">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Verify Email & Proceed</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* STAGE 2: Change Password Card (Shown AFTER Email is verified) */}
+          {stage === 'password_update' && (
+            <form onSubmit={handleChangePassword} className="bg-white border border-[#E8E2D9] rounded-3xl p-6 sm:p-8 shadow-sm space-y-5 animate-in fade-in">
+              <div>
+                <h2 className="text-base font-black text-[#2B241F]">Update Account Password</h2>
+                <p className="text-xs font-semibold text-[#60534A] mt-0.5">
+                  Email verified! Enter your old password and choose a new password.
+                </p>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="sleek-btn-primary w-full text-xs font-black py-3.5 cursor-pointer disabled:opacity-50 shadow-md flex items-center justify-center gap-2 mt-2"
-            >
-              {loading ? (
-                <span className="flex items-center gap-2 justify-center">
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Updating Password...</span>
-                </span>
-              ) : (
-                <span className="flex items-center gap-2 justify-center">
-                  <KeyRound className="w-4 h-4" />
-                  <span>Change Password</span>
-                </span>
-              )}
-            </button>
-          </form>
+              {/* Old / Current Password */}
+              <div>
+                <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-2">
+                  Old / Current Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-3 focus:outline-none focus:border-[#0F2C59] font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-2">
+                  New Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-3 focus:outline-none focus:border-[#0F2C59] font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Confirm New Password */}
+              <div>
+                <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-2">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-3 focus:outline-none focus:border-[#0F2C59] font-bold"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="sleek-btn-primary w-full text-xs font-black py-3.5 cursor-pointer disabled:opacity-50 shadow-md flex items-center justify-center gap-2 mt-2"
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2 justify-center">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Updating Password...</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2 justify-center">
+                    <KeyRound className="w-4 h-4" />
+                    <span>Change Password</span>
+                  </span>
+                )}
+              </button>
+            </form>
+          )}
         </main>
       </div>
     </div>
