@@ -1,20 +1,21 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { KeyRound, Lock, ShieldCheck, CheckCircle2, AlertCircle, Send, RefreshCw, Mail, ArrowRight } from 'lucide-react';
+import { KeyRound, Lock, ShieldCheck, CheckCircle2, AlertCircle, Send, RefreshCw, Mail, ArrowRight, ArrowLeft, LayoutDashboard } from 'lucide-react';
 
 export default function ChangePasswordPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const { user, logoutUser } = useAuth();
+  const { user } = useAuth();
 
-  // Stage: 'email_verification' -> 'password_update' (NO steps shown above card)
-  const [stage, setStage] = useState<'email_verification' | 'password_update'>('email_verification');
+  // Stage: 'email_verification' | 'password_update' | 'success'
+  const [stage, setStage] = useState<'email_verification' | 'password_update' | 'success'>('email_verification');
 
   // Form states
   const [otpCode, setOtpCode] = useState('');
@@ -61,7 +62,7 @@ export default function ChangePasswordPage() {
     setLoading(true);
 
     try {
-      const res = await api.post('/api/auth/verify-otp', {
+      await api.post('/api/auth/verify-otp', {
         email: userEmail,
         otp_code: otpCode.trim()
       });
@@ -106,10 +107,8 @@ export default function ChangePasswordPage() {
         confirm_password: confirmPassword,
       });
 
-      setMessage(res.data.message || 'Password changed successfully! Redirecting to Sign In...');
-      setTimeout(() => {
-        logoutUser();
-      }, 2500);
+      setMessage(res.data.message || 'Password changed successfully!');
+      setStage('success');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Password change failed.');
     } finally {
@@ -124,7 +123,7 @@ export default function ChangePasswordPage() {
         <Navbar collapsed={collapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
         <main className="pt-20 sm:pt-24 lg:pt-28 p-4 sm:p-6 lg:p-8 max-w-xl mx-auto space-y-6">
-          {/* Page Header (No steps mentioned above card) */}
+          {/* Page Header */}
           <div className="flex items-center gap-3.5 p-5 sm:p-6 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm">
             <div className="p-3 rounded-2xl bg-blue-50 border border-blue-100 text-[#0047AB] shrink-0">
               <KeyRound className="w-6 h-6" />
@@ -135,7 +134,7 @@ export default function ChangePasswordPage() {
             </div>
           </div>
 
-          {message && (
+          {message && stage !== 'success' && (
             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-[#1E6B43] text-xs font-bold flex items-center gap-2 animate-in fade-in">
               <CheckCircle2 className="w-5 h-5 shrink-0" />
               <span>{message}</span>
@@ -152,11 +151,21 @@ export default function ChangePasswordPage() {
           {/* STAGE 1: Email Verification Card */}
           {stage === 'email_verification' && (
             <form onSubmit={handleVerifyOTP} className="bg-white border border-[#E8E2D9] rounded-3xl p-6 sm:p-8 shadow-sm space-y-5 animate-in fade-in">
-              <div>
-                <h2 className="text-base font-black text-[#2B241F]">Email Identity Verification</h2>
-                <p className="text-xs font-semibold text-[#60534A] mt-0.5">
-                  Verify your email address before setting a new password.
-                </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-black text-[#2B241F]">Email Identity Verification</h2>
+                  <p className="text-xs font-semibold text-[#60534A] mt-0.5">
+                    Verify your email address before setting a new password.
+                  </p>
+                </div>
+                {/* Small Back Button */}
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#FAF6F1] hover:bg-[#EFE7DE] text-[#60534A] hover:text-[#2B241F] text-xs font-extrabold border border-[#E2D7CB] transition-all"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back</span>
+                </Link>
               </div>
 
               <div>
@@ -236,14 +245,25 @@ export default function ChangePasswordPage() {
             </form>
           )}
 
-          {/* STAGE 2: Change Password Card (Shown AFTER Email is verified) */}
+          {/* STAGE 2: Change Password Card */}
           {stage === 'password_update' && (
             <form onSubmit={handleChangePassword} className="bg-white border border-[#E8E2D9] rounded-3xl p-6 sm:p-8 shadow-sm space-y-5 animate-in fade-in">
-              <div>
-                <h2 className="text-base font-black text-[#2B241F]">Update Account Password</h2>
-                <p className="text-xs font-semibold text-[#60534A] mt-0.5">
-                  Email verified! Enter your old password and choose a new password.
-                </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-black text-[#2B241F]">Update Account Password</h2>
+                  <p className="text-xs font-semibold text-[#60534A] mt-0.5">
+                    Email verified! Enter your old password and choose a new password.
+                  </p>
+                </div>
+                {/* Small Back Button */}
+                <button
+                  type="button"
+                  onClick={() => setStage('email_verification')}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#FAF6F1] hover:bg-[#EFE7DE] text-[#60534A] hover:text-[#2B241F] text-xs font-extrabold border border-[#E2D7CB] transition-all"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back</span>
+                </button>
               </div>
 
               {/* Old / Current Password */}
@@ -318,6 +338,33 @@ export default function ChangePasswordPage() {
                 )}
               </button>
             </form>
+          )}
+
+          {/* STAGE 3: Success Completion Card (in the SAME card container) */}
+          {stage === 'success' && (
+            <div className="bg-white border border-[#E8E2D9] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 text-center animate-in fade-in">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 border-2 border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-md">
+                <CheckCircle2 className="w-10 h-10" />
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-xl font-black text-[#2B241F]">Password Changed Successfully!</h2>
+                <p className="text-xs font-semibold text-[#60534A] max-w-md mx-auto">
+                  {message || 'Your account credentials have been updated securely. You can now return to your dashboard.'}
+                </p>
+              </div>
+
+              <div className="pt-2">
+                <Link
+                  href="/dashboard"
+                  className="sleek-btn-primary w-full inline-flex items-center justify-center gap-2 text-xs font-black py-3.5"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Return to Dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
           )}
         </main>
       </div>
