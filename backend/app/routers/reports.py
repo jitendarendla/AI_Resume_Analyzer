@@ -245,11 +245,14 @@ def get_dashboard_stats(recruiter: Recruiter = Depends(get_current_recruiter), d
     if not folder_distribution:
         folder_distribution = [{"name": "No Folders Yet", "value": 0}]
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     date_counts = {}
     for h in history_all:
         if h.created_at:
-            d_str = h.created_at.strftime("%b %d")
+            created = h.created_at
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            d_str = created.strftime("%b %d")
             date_counts[d_str] = date_counts.get(d_str, 0) + (h.resume_count or 1)
 
     date_wise_trends = []
@@ -261,7 +264,10 @@ def get_dashboard_stats(recruiter: Recruiter = Depends(get_current_recruiter), d
     week_counts = {"Week 1": 0, "Week 2": 0, "Week 3": 0, "Week 4": 0}
     for h in history_all:
         if h.created_at:
-            delta_days = (now - h.created_at).days
+            created = h.created_at
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            delta_days = (now - created).days
             if delta_days < 7:
                 week_counts["Week 4"] += (h.resume_count or 1)
             elif delta_days < 14:

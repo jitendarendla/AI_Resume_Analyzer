@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Sparkles, Menu, LogOut, User, KeyRound } from 'lucide-react';
+import { Sparkles, Menu, LogOut, User, KeyRound, Lock, Settings } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface NavbarProps {
@@ -21,6 +21,8 @@ export default function Navbar({ collapsed, mobileOpen, setMobileOpen }: NavbarP
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const isGoogleUser = user?.company === 'Google Account' || user?.company === 'Google';
 
   return (
     <header
@@ -71,7 +73,7 @@ export default function Navbar({ collapsed, mobileOpen, setMobileOpen }: NavbarP
 
               {/* User Menu Dropdown */}
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-[#E8E2D9] rounded-2xl shadow-xl p-2 z-50 space-y-1">
+                <div className="absolute right-0 mt-2 w-60 bg-white border border-[#E8E2D9] rounded-2xl shadow-xl p-2 z-50 space-y-1 animate-in fade-in">
                   <div className="p-3 bg-[#FAF6F1] rounded-xl border border-[#E8E2D9]">
                     <p className="text-xs font-black text-[#2B241F] truncate">{user.full_name || user.name}</p>
                     <p className="text-[10px] font-bold text-[#60534A] truncate">{user.email}</p>
@@ -79,12 +81,21 @@ export default function Navbar({ collapsed, mobileOpen, setMobileOpen }: NavbarP
                   </div>
 
                   <Link
+                    href="/profile"
+                    onClick={() => setShowDropdown(false)}
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-[#2B241F] hover:bg-[#FAF6F1] transition-colors"
+                  >
+                    <User className="w-4 h-4 text-[#0047AB]" />
+                    <span>Profile & Account</span>
+                  </Link>
+
+                  <Link
                     href="/change-password"
                     onClick={() => setShowDropdown(false)}
                     className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-[#2B241F] hover:bg-[#FAF6F1] transition-colors"
                   >
-                    <KeyRound className="w-4 h-4 text-[#0047AB]" />
-                    <span>Change Password</span>
+                    <Lock className="w-4 h-4 text-[#0047AB]" />
+                    <span>{isGoogleUser ? 'Set / Change Password' : 'Change Password'}</span>
                   </Link>
 
                   <button

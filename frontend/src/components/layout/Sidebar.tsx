@@ -10,6 +10,8 @@ import {
   Users,
   FileSpreadsheet,
   History,
+  User,
+  KeyRound,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -43,12 +45,16 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
     return () => window.removeEventListener('resize', handleResize);
   }, [setCollapsed, setMobileOpen]);
 
+  const isGoogleUser = user?.company === 'Google Account' || user?.company === 'Google';
+
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Upload Resumes', href: '/upload', icon: UploadCloud },
     { name: 'History', href: '/history', icon: History },
     { name: 'Candidates', href: '/candidates', icon: Users },
     { name: 'Reports', href: '/reports', icon: FileSpreadsheet },
+    { name: 'Profile Settings', href: '/profile', icon: User },
+    { name: isGoogleUser ? 'Set / Change Password' : 'Change Password', href: '/change-password', icon: KeyRound },
   ];
 
   return (
@@ -143,7 +149,10 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
         {/* User Footer */}
         <div className="p-3 border-t border-[#2B231D] bg-[#140F0C]">
           {mounted && user ? (
-            <div className="flex items-center justify-between p-2 rounded-2xl bg-[#241D18] border border-[#352B23]">
+            <Link 
+              href="/profile"
+              className="flex items-center justify-between p-2 rounded-2xl bg-[#241D18] hover:bg-[#332A23] border border-[#352B23] transition-colors"
+            >
               <div className="flex items-center gap-2.5 overflow-hidden">
                 <div className="w-8 h-8 rounded-xl bg-[#0F2C59] text-white flex items-center justify-center font-black text-xs shrink-0 border border-blue-400/20">
                   {user.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
@@ -157,7 +166,11 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
               </div>
               {(!collapsed || mobileOpen) && (
                 <button
-                  onClick={logoutUser}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    logoutUser();
+                  }}
                   title="Logout"
                   suppressHydrationWarning
                   className="p-1.5 rounded-lg text-[#8C7E72] hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
@@ -165,7 +178,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
                   <LogOut className="w-4 h-4" />
                 </button>
               )}
-            </div>
+            </Link>
           ) : null}
         </div>
       </aside>
