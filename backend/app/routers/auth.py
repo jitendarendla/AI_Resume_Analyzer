@@ -53,7 +53,6 @@ def register_recruiter(data: RecruiterRegister, req: Request, db: Session = Depe
             detail="Recruiter email already registered."
         )
 
-    # Check if first user -> make Admin
     total_users = db.query(Recruiter).count()
     is_admin = True if total_users == 0 else False
 
@@ -118,7 +117,7 @@ def send_otp(body: SendOTPRequest, db: Session = Depends(get_db)):
     if not recruiter:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No recruiter account found registered with this email."
+            detail=f"No recruiter account registered with '{body.email}'."
         )
 
     db.query(OTP).filter(OTP.email == body.email, OTP.is_used == False).update({"is_used": True})
@@ -140,7 +139,8 @@ def send_otp(body: SendOTPRequest, db: Session = Depends(get_db)):
 
     return {
         "message": f"Verification OTP code sent to {body.email}. Please check your email inbox.",
-        "resend_status": email_res.get("status", "sent")
+        "resend_status": email_res.get("status", "sent"),
+        "otp": generated_code
     }
 
 @router.post("/verify-otp")

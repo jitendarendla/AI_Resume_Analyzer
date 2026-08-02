@@ -12,7 +12,7 @@ class Settings(BaseSettings):
         "https://ai-resume-analyzer-9cd34-default-rtdb.asia-southeast1.firebasedatabase.app"
     )
 
-    # Database Settings (Legacy / Fallback)
+    # Database Settings
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "Sonu@801"
     POSTGRES_SERVER: str = "localhost"
@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     # Resend Email Service Settings
     RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
     RESEND_FROM_EMAIL: str = os.getenv("RESEND_FROM_EMAIL", "AI Resume Analyzer <onboarding@resend.dev>")
+
+    # SMTP Fallback Email Settings
+    SMTP_SERVER: str = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USERNAME: str = os.getenv("SMTP_USERNAME", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
 
     # CORS Security Origins
     CORS_ORIGINS: list[str] = [
