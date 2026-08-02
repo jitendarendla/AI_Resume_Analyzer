@@ -3,15 +3,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
-import { 
-  signInWithPopup, 
-  signInWithRedirect, 
-  getRedirectResult,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut
-} from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase';
 
 interface RecruiterUser {
   id: string;
@@ -21,16 +12,14 @@ interface RecruiterUser {
   full_name?: string;
   company?: string;
   is_admin: boolean;
-  avatar_url?: string;
 }
 
 interface AuthContextType {
   user: RecruiterUser | null;
   token: string | null;
   loginUser: (tokenData: any) => void;
-  loginWithGoogle: () => Promise<any>;
-  loginWithFirebaseEmail: (email: string, password: string) => Promise<any>;
-  registerWithFirebaseEmail: (email: string, password: string, name: string, company: string) => Promise<any>;
+  loginWithEmail: (email: string, password: string) => Promise<any>;
+  registerUser: (name: string, email: string, company: string, password: string) => Promise<any>;
   logoutUser: () => void;
   isLoading: boolean;
 }
@@ -39,9 +28,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   token: null,
   loginUser: () => {},
-  loginWithGoogle: async () => {},
-  loginWithFirebaseEmail: async () => {},
-  registerWithFirebaseEmail: async () => {},
+  loginWithEmail: async () => {},
+  registerUser: async () => {},
   logoutUser: () => {},
   isLoading: true,
 });
@@ -54,42 +42,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Check for Firebase Google Redirect login result
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result && result.user) {
-          const gUser = result.user;
-          const response = await api.post('/api/auth/google-login', {
-            email: gUser.email,
-            name: gUser.displayName || 'Google Recruiter',
-            google_uid: gUser.uid,
-            photo_url: gUser.photoURL || '',
-          });
-
-          if (response.data && response.data.access_token) {
-            const recruiterObj = {
-              id: response.data.recruiter_id,
-              recruiter_id: response.data.recruiter_id,
-              email: response.data.email,
-              name: response.data.name,
-              full_name: response.data.name,
-              company: response.data.company || 'Google Account',
-              is_admin: response.data.is_admin,
-              avatar_url: gUser.photoURL || response.data.avatar_url || '',
-            };
-
-            localStorage.setItem('token', response.data.access_token);
-            localStorage.setItem('recruiter', JSON.stringify(recruiterObj));
-            setToken(response.data.access_token);
-            setUser(recruiterObj);
-            router.push('/dashboard');
-          }
-        }
-      })
-      .catch((e) => {
-        console.warn('Redirect auth check complete');
-      });
-
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('recruiter');
 
@@ -105,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Failed to parse recruiter user');
       }
 
-      // Refresh current user profile from PostgreSQL backend
+      // Verify current token and fetch fresh profile from PostgreSQL backend
       api.get('/api/auth/me', { headers: { Authorization: `Bearer ${storedToken}` } })
         .then((res) => {
           if (res.data) {
@@ -118,7 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         })
         .catch(() => {
-          console.warn('Session check complete');
+          console.warn('Session expired or invalid');
         })
         .finally(() => {
           setIsLoading(false);
@@ -151,135 +103,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.push('/dashboard');
   };
 
-  const loginWithFirebaseEmail = async (email: string, password: string) => {
+  const loginWithEmail = async (email: string, password: string) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const fbUser = userCredential.user;
-
-      const response = await api.post('/api/auth/google-login', {
-        email: fbUser.email,
-        name: fbUser.displayName || email.split('@')[0],
-        google_uid: fbUser.uid,
-        photo_url: fbUser.photoURL || '',
+      const response = await api.post('/api/auth/login', {
+        email: email.trim(),
+        password: password,
       });
 
       if (response.data && response.data.access_token) {
-        const recruiterObj = {
-          id: response.data.recruiter_id,
-          recruiter_id: response.data.recruiter_id,
-          email: response.data.email,
-          name: response.data.name,
-          full_name: response.data.name,
-          company: response.data.company || 'Firebase Recruiter',
-          is_admin: response.data.is_admin,
-          avatar_url: fbUser.photoURL || '',
-        };
-
-        localStorage.setItem('token', response.data.access_token);
-        localStorage.setItem('recruiter', JSON.stringify(recruiterObj));
-        setToken(response.data.access_token);
-        setUser(recruiterObj);
-        router.push('/dashboard');
-        return recruiterObj;
+        loginUser(response.data);
+        return response.data;
       }
     } catch (err: any) {
-      console.error('Firebase Email Login Error:', err);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        throw new Error('Invalid email address or password.');
-      }
-      throw new Error(err.message || 'Firebase authentication failed.');
+      console.error('Native JWT Login Error:', err);
+      throw new Error(err.response?.data?.detail || 'Invalid email address or password credentials.');
     }
   };
 
-  const registerWithFirebaseEmail = async (email: string, password: string, name: string, company: string) => {
+  const registerUser = async (name: string, email: string, company: string, password: string) => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const fbUser = userCredential.user;
-
-      const response = await api.post('/api/auth/google-login', {
-        email: fbUser.email,
-        name: name || fbUser.displayName || email.split('@')[0],
-        google_uid: fbUser.uid,
-        photo_url: '',
+      const response = await api.post('/api/auth/register', {
+        name: name.trim(),
+        email: email.trim(),
+        company: company.trim() || 'Recruitment Agency',
+        password: password,
       });
 
-      if (response.data && response.data.access_token) {
-        const recruiterObj = {
-          id: response.data.recruiter_id,
-          recruiter_id: response.data.recruiter_id,
-          email: response.data.email,
-          name: name || response.data.name,
-          full_name: name || response.data.name,
-          company: company || 'Firebase Recruiter',
-          is_admin: response.data.is_admin,
-        };
-
-        localStorage.setItem('token', response.data.access_token);
-        localStorage.setItem('recruiter', JSON.stringify(recruiterObj));
-        setToken(response.data.access_token);
-        setUser(recruiterObj);
-        router.push('/dashboard');
-        return recruiterObj;
+      if (response.data) {
+        // Auto log in after successful registration
+        await loginWithEmail(email, password);
+        return response.data;
       }
     } catch (err: any) {
-      console.error('Firebase Email Register Error:', err);
-      if (err.code === 'auth/email-already-in-use') {
-        throw new Error('Email address is already registered in Firebase.');
-      }
-      throw new Error(err.message || 'Firebase account creation failed.');
-    }
-  };
-
-  const loginWithGoogle = async () => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const gUser = result.user;
-
-      const response = await api.post('/api/auth/google-login', {
-        email: gUser.email,
-        name: gUser.displayName || 'Google Recruiter',
-        google_uid: gUser.uid,
-        photo_url: gUser.photoURL || '',
-      });
-
-      if (response.data && response.data.access_token) {
-        const recruiterObj = {
-          id: response.data.recruiter_id,
-          recruiter_id: response.data.recruiter_id,
-          email: response.data.email,
-          name: response.data.name,
-          full_name: response.data.name,
-          company: response.data.company || 'Google Account',
-          is_admin: response.data.is_admin,
-          avatar_url: gUser.photoURL || response.data.avatar_url || '',
-        };
-
-        localStorage.setItem('token', response.data.access_token);
-        localStorage.setItem('recruiter', JSON.stringify(recruiterObj));
-        setToken(response.data.access_token);
-        setUser(recruiterObj);
-        router.push('/dashboard');
-        return recruiterObj;
-      }
-    } catch (err: any) {
-      console.warn('Popup login fallback to Redirect mode:', err);
-      if (err.code === 'auth/unauthorized-domain') {
-        const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'your deployment domain';
-        throw new Error(`Firebase Domain Authorization Required: Add '${currentDomain}' to Firebase Console -> Authentication -> Settings -> Authorized domains.`);
-      }
-      
-      try {
-        await signInWithRedirect(auth, googleProvider);
-      } catch (redirectErr: any) {
-        throw new Error(redirectErr.message || 'Google Sign In failed.');
-      }
+      console.error('Native JWT Register Error:', err);
+      throw new Error(err.response?.data?.detail || 'Registration failed. Recruiter email may already be registered.');
     }
   };
 
   const logoutUser = () => {
-    try {
-      firebaseSignOut(auth);
-    } catch (e) {}
     localStorage.removeItem('token');
     localStorage.removeItem('recruiter');
     setUser(null);
@@ -292,9 +153,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user, 
       token, 
       loginUser, 
-      loginWithGoogle, 
-      loginWithFirebaseEmail, 
-      registerWithFirebaseEmail, 
+      loginWithEmail, 
+      registerUser, 
       logoutUser, 
       isLoading 
     }}>

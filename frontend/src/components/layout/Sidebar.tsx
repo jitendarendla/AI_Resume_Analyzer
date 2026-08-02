@@ -10,7 +10,6 @@ import {
   Users,
   FileSpreadsheet,
   History,
-  User,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -50,7 +49,6 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
     { name: 'History', href: '/history', icon: History },
     { name: 'Candidates', href: '/candidates', icon: Users },
     { name: 'Reports', href: '/reports', icon: FileSpreadsheet },
-    { name: 'Profile & Settings', href: '/profile', icon: User },
   ];
 
   return (
@@ -145,10 +143,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
         {/* User Footer */}
         <div className="p-3 border-t border-[#2B231D] bg-[#140F0C]">
           {mounted && user ? (
-            <Link 
-              href="/profile"
-              className="flex items-center justify-between p-2 rounded-2xl bg-[#241D18] hover:bg-[#332A23] border border-[#352B23] transition-colors"
-            >
+            <div className="flex items-center justify-between p-2 rounded-2xl bg-[#241D18] border border-[#352B23]">
               <div className="flex items-center gap-2.5 overflow-hidden">
                 <div className="w-8 h-8 rounded-xl bg-[#0F2C59] text-white flex items-center justify-center font-black text-xs shrink-0 border border-blue-400/20">
                   {user.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
@@ -162,19 +157,15 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
               </div>
               {(!collapsed || mobileOpen) && (
                 <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    logoutUser();
-                  }}
+                  onClick={logoutUser}
                   title="Logout"
                   suppressHydrationWarning
-                  className="p-1.5 rounded-lg text-[#8C7E72] hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                  className="p-1.5 rounded-lg text-[#8C7E72] hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
               )}
-            </Link>
+            </div>
           ) : null}
         </div>
       </aside>

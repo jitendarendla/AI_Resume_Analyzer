@@ -14,7 +14,6 @@ from app.schemas.schemas import (
     RecruiterRegister,
     RecruiterLogin,
     Token,
-    ChangePassword,
     ForgotPasswordRequest,
     ForgotPasswordReset
 )
@@ -39,21 +38,6 @@ class ResetPasswordOTPRequest(BaseModel):
     new_password: str = Field(..., min_length=6)
     confirm_password: str = Field(..., min_length=6)
 
-class GoogleLoginRequest(BaseModel):
-    email: EmailStr
-    name: Optional[str] = "Recruiter User"
-    google_uid: Optional[str] = None
-    photo_url: Optional[str] = None
-
-class SetPasswordRequest(BaseModel):
-    new_password: str = Field(..., min_length=6)
-    confirm_password: str = Field(..., min_length=6)
-
-class ChangePasswordRequest(BaseModel):
-    current_password: Optional[str] = None
-    new_password: str = Field(..., min_length=6)
-    confirm_password: str = Field(..., min_length=6)
-
 @router.post("/register", response_model=dict, status_code=status.HTTP_201_CREATED)
 def register_recruiter(data: RecruiterRegister, req: Request, db: Session = Depends(get_db)):
     existing = db.query(Recruiter).filter(Recruiter.email == data.email).first()
@@ -71,7 +55,7 @@ def register_recruiter(data: RecruiterRegister, req: Request, db: Session = Depe
     new_recruiter = Recruiter(
         name=data.name,
         email=data.email,
-        company=data.company,
+        company=data.company or "Recruitment Agency",
         password_hash=hashed_pw,
         is_admin=is_admin
     )
@@ -120,49 +104,6 @@ def login_recruiter(data: RecruiterLogin, req: Request, db: Session = Depends(ge
         "name": recruiter.name,
         "company": recruiter.company or "Recruitment Agency",
         "is_admin": recruiter.is_admin
-    }
-
-@router.post("/google-login")
-def google_login(data: GoogleLoginRequest, req: Request, db: Session = Depends(get_db)):
-    recruiter = db.query(Recruiter).filter(Recruiter.email == data.email).first()
-
-    if not recruiter:
-        total_users = db.query(Recruiter).count()
-        is_admin = True if total_users == 0 else False
-
-        recruiter = Recruiter(
-            name=data.name or "Recruiter User",
-            email=data.email,
-            company="Google Account",
-            password_hash=get_password_hash("GoogleOAuthSecuredPass123!"),
-            is_admin=is_admin
-        )
-        db.add(recruiter)
-        db.commit()
-        db.refresh(recruiter)
-
-    access_token = create_access_token(data={"sub": recruiter.id})
-    refresh_token = create_refresh_token(data={"sub": recruiter.id})
-
-    audit = AuditLog(
-        recruiter_id=recruiter.id,
-        action=f"Recruiter Logged In via Google Account ({recruiter.email})",
-        ip_address=req.client.host if req.client else "127.0.0.1",
-        user_agent=req.headers.get("user-agent", "")
-    )
-    db.add(audit)
-    db.commit()
-
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-        "recruiter_id": recruiter.id,
-        "email": recruiter.email,
-        "name": recruiter.name,
-        "company": recruiter.company or "Google Account",
-        "is_admin": recruiter.is_admin,
-        "avatar_url": data.photo_url or ""
     }
 
 @router.post("/send-otp")
@@ -256,47 +197,6 @@ def reset_password_with_otp(body: ResetPasswordOTPRequest, db: Session = Depends
 
     return {"message": "Password reset successfully. You can now login with your new password."}
 
-@router.post("/set-password")
-def set_google_account_password(
-    data: SetPasswordRequest,
-    recruiter: Recruiter = Depends(get_current_recruiter),
-    db: Session = Depends(get_db)
-):
-    if data.new_password != data.confirm_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="New password and confirm password do not match."
-        )
-
-    recruiter.password_hash = get_password_hash(data.new_password)
-    db.commit()
-
-    return {"message": "Password successfully created for your Google Account. You can now log in using your email and password as well."}
-
-@router.post("/change-password")
-def change_recruiter_password(
-    data: ChangePasswordRequest,
-    recruiter: Recruiter = Depends(get_current_recruiter),
-    db: Session = Depends(get_db)
-):
-    if data.new_password != data.confirm_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="New password and confirm password do not match."
-        )
-
-    if data.current_password and recruiter.password_hash:
-        if not verify_password(data.current_password, recruiter.password_hash):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Incorrect current password."
-            )
-
-    recruiter.password_hash = get_password_hash(data.new_password)
-    db.commit()
-
-    return {"message": "Account password updated successfully. Please log in with your new password."}
-
 @router.get("/me")
 def get_current_user_profile(recruiter: Recruiter = Depends(get_current_recruiter)):
     return {
@@ -306,26 +206,4 @@ def get_current_user_profile(recruiter: Recruiter = Depends(get_current_recruite
         "name": recruiter.name,
         "company": recruiter.company,
         "is_admin": recruiter.is_admin
-    }
-
-@router.put("/profile")
-def update_profile(
-    data: ProfileUpdate,
-    recruiter: Recruiter = Depends(get_current_recruiter),
-    db: Session = Depends(get_db)
-):
-    recruiter.name = data.name
-    recruiter.company = data.company
-    db.commit()
-
-    return {
-        "message": "Profile updated successfully.",
-        "user": {
-            "id": recruiter.id,
-            "recruiter_id": recruiter.id,
-            "email": recruiter.email,
-            "name": recruiter.name,
-            "company": recruiter.company,
-            "is_admin": recruiter.is_admin
-        }
     }

@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Mail, Lock, LogIn, AlertCircle, ArrowRight } from 'lucide-react';
 
@@ -12,8 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { loginWithFirebaseEmail } = useAuth();
-  const router = useRouter();
+  const { loginWithEmail } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +19,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await loginWithFirebaseEmail(email.trim(), password);
+      await loginWithEmail(email.trim(), password);
     } catch (err: any) {
       setError(err.message || 'Invalid email address or password credentials.');
     } finally {
@@ -41,7 +39,7 @@ export default function LoginPage() {
           </Link>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-[#2B241F]">Recruiter Sign In</h1>
-            <p className="text-xs font-semibold text-[#60534A] mt-1">Enter your email and password to access your candidate dashboard</p>
+            <p className="text-xs font-semibold text-[#60534A] mt-1">High-Security JWT Authentication & PostgreSQL Database</p>
           </div>
         </div>
 
@@ -100,7 +98,7 @@ export default function LoginPage() {
             {loading ? (
               <span className="flex items-center gap-2 justify-center">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Authenticating...</span>
+                <span>Authenticating JWT...</span>
               </span>
             ) : (
               <span className="flex items-center gap-2 justify-center">
