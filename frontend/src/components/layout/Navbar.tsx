@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Sparkles, Menu, LogOut } from 'lucide-react';
+import { Sparkles, Menu, LogOut, KeyRound } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface NavbarProps {
@@ -77,6 +77,15 @@ export default function Navbar({ collapsed, mobileOpen, setMobileOpen }: NavbarP
                     <p className="text-[10px] font-bold text-[#60534A] truncate">{user.email}</p>
                     {user.company && <p className="text-[10px] font-semibold text-[#0047AB] mt-0.5">{user.company}</p>}
                   </div>
+
+                  <Link
+                    href="/change-password"
+                    onClick={() => setShowDropdown(false)}
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-[#2B241F] hover:bg-[#FAF6F1] transition-colors"
+                  >
+                    <KeyRound className="w-4 h-4 text-[#0047AB]" />
+                    <span>Change Password</span>
+                  </Link>
 
                   <button
                     onClick={() => {
