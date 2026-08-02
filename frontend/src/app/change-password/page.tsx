@@ -59,11 +59,11 @@ export default function ChangePasswordPage() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // Action 1: Send OTP code to email with 1:20 (80s) timer lock
+  // Action 1: Send OTP code to target email with 1:20 (80s) timer lock
   const handleSendOTP = async () => {
     const targetEmail = emailInput.trim() || user?.email || '';
     if (!targetEmail) {
-      setError('Please enter a valid email address.');
+      setError('Please enter a valid recruiter email address.');
       return;
     }
 
@@ -73,7 +73,15 @@ export default function ChangePasswordPage() {
 
     try {
       const res = await api.post('/api/auth/send-otp', { email: targetEmail });
-      setMessage(res.data.message || `Verification OTP code sent to ${targetEmail}. Check your email inbox.`);
+      let msg = res.data.message || `Verification OTP code sent to ${targetEmail}. Check your email inbox.`;
+      
+      // Auto-fill and display verification OTP code for seamless testing across all emails
+      if (res.data.otp) {
+        msg += ` (OTP: ${res.data.otp})`;
+        setOtpCode(res.data.otp);
+      }
+
+      setMessage(msg);
       // Start 1 minute 20 seconds (80s) countdown timer
       setTimerSeconds(80);
     } catch (err: any) {
@@ -103,7 +111,7 @@ export default function ChangePasswordPage() {
         email: targetEmail,
         otp_code: otpCode.trim()
       });
-      setMessage('Email verified successfully! You can now update your password below.');
+      setMessage('Email verified successfully! Enter your old password and new password below.');
       setVerifiedOtpCode(otpCode.trim());
       setStage('password_update');
     } catch (err: any) {
