@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { KeyRound, Lock, ShieldCheck, CheckCircle2, AlertCircle, Send, RefreshCw, Mail, ArrowRight, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { KeyRound, Lock, ShieldCheck, CheckCircle2, AlertCircle, Send, RefreshCw, Mail, ArrowRight, ArrowLeft, LayoutDashboard, Clock } from 'lucide-react';
 
 export default function ChangePasswordPage() {
   const [collapsed, setCollapsed] = useState(false);
@@ -18,29 +18,64 @@ export default function ChangePasswordPage() {
   const [stage, setStage] = useState<'email_verification' | 'password_update' | 'success'>('email_verification');
 
   // Form states
+  const [emailInput, setEmailInput] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [verifiedOtpCode, setVerifiedOtpCode] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // 1 minute 20 seconds (80 seconds) countdown timer state
+  const [timerSeconds, setTimerSeconds] = useState<number>(0);
+
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [sendingOtp, setSendingOtp] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const userEmail = user?.email || '';
+  useEffect(() => {
+    if (user?.email) {
+      setEmailInput(user.email);
+    }
+  }, [user]);
 
-  // Action 1: Send OTP code to email
+  // Countdown timer effect for Resend OTP (80 seconds = 1:20)
+  useEffect(() => {
+    let interval: any = null;
+    if (timerSeconds > 0) {
+      interval = setInterval(() => {
+        setTimerSeconds((prev) => prev - 1);
+      }, 1000);
+    } else {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [timerSeconds]);
+
+  // Format seconds to M:SS (e.g. 80 -> 1:20)
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  // Action 1: Send OTP code to email with 1:20 (80s) timer lock
   const handleSendOTP = async () => {
-    if (!userEmail) return;
+    const targetEmail = emailInput.trim() || user?.email || '';
+    if (!targetEmail) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
     setError('');
     setMessage('');
     setSendingOtp(true);
 
     try {
-      const res = await api.post('/api/auth/send-otp', { email: userEmail });
-      setMessage(res.data.message || `Verification OTP code sent to ${userEmail}. Check your email inbox.`);
+      const res = await api.post('/api/auth/send-otp', { email: targetEmail });
+      setMessage(res.data.message || `Verification OTP code sent to ${targetEmail}. Check your email inbox.`);
+      // Start 1 minute 20 seconds (80s) countdown timer
+      setTimerSeconds(80);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to send OTP verification code.');
     } finally {
@@ -51,6 +86,8 @@ export default function ChangePasswordPage() {
   // Action 2: Verify Email OTP Code
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
+    const targetEmail = emailInput.trim() || user?.email || '';
+
     setError('');
     setMessage('');
 
@@ -63,7 +100,7 @@ export default function ChangePasswordPage() {
 
     try {
       await api.post('/api/auth/verify-otp', {
-        email: userEmail,
+        email: targetEmail,
         otp_code: otpCode.trim()
       });
       setMessage('Email verified successfully! You can now update your password below.');
@@ -170,15 +207,17 @@ export default function ChangePasswordPage() {
 
               <div>
                 <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-2">
-                  Recruiter Email
+                  Recruiter Email Address
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
                   <input
                     type="email"
-                    disabled
-                    value={userEmail}
-                    className="w-full bg-[#FAF6F1]/80 border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-3 font-bold"
+                    required
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="name@company.com"
+                    className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-3 font-bold focus:outline-none focus:border-[#0F2C59]"
                   />
                 </div>
               </div>
@@ -191,17 +230,22 @@ export default function ChangePasswordPage() {
                   <button
                     type="button"
                     onClick={handleSendOTP}
-                    disabled={sendingOtp || !userEmail}
-                    className="text-xs font-black text-[#0047AB] hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    disabled={sendingOtp || timerSeconds > 0 || !emailInput}
+                    className="text-xs font-black text-[#0047AB] hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:no-underline"
                   >
                     {sendingOtp ? (
                       <span className="flex items-center gap-1">
-                        <RefreshCw className="w-3 h-3 animate-spin" />
-                        <span>Sending Code...</span>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Sending...</span>
+                      </span>
+                    ) : timerSeconds > 0 ? (
+                      <span className="flex items-center gap-1 text-[#8C7E72] font-mono">
+                        <Clock className="w-3.5 h-3.5 text-[#8C7E72]" />
+                        <span>Resend in {formatTimer(timerSeconds)}</span>
                       </span>
                     ) : (
                       <span className="flex items-center gap-1">
-                        <Send className="w-3 h-3" />
+                        <Send className="w-3.5 h-3.5" />
                         <span>Send OTP Code</span>
                       </span>
                     )}
@@ -220,7 +264,7 @@ export default function ChangePasswordPage() {
                   />
                 </div>
                 <p className="text-[11px] font-semibold text-[#8C7E72] mt-1.5">
-                  Click "Send OTP Code" to receive your verification code at <span className="font-bold text-[#2B241F]">{userEmail}</span>.
+                  Click "Send OTP Code" to receive your verification code at <span className="font-bold text-[#2B241F]">{emailInput || 'your email'}</span>.
                 </p>
               </div>
 
@@ -340,7 +384,7 @@ export default function ChangePasswordPage() {
             </form>
           )}
 
-          {/* STAGE 3: Success Completion Card (in the SAME card container) */}
+          {/* STAGE 3: Success Completion Card */}
           {stage === 'success' && (
             <div className="bg-white border border-[#E8E2D9] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 text-center animate-in fade-in">
               <div className="w-16 h-16 rounded-full bg-emerald-100 border-2 border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-md">
