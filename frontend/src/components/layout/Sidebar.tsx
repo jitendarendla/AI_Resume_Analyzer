@@ -11,7 +11,6 @@ import {
   FileSpreadsheet,
   History,
   User,
-  KeyRound,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -45,16 +44,13 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
     return () => window.removeEventListener('resize', handleResize);
   }, [setCollapsed, setMobileOpen]);
 
-  const isGoogleUser = user?.company === 'Google Account' || user?.company === 'Google';
-
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Upload Resumes', href: '/upload', icon: UploadCloud },
     { name: 'History', href: '/history', icon: History },
     { name: 'Candidates', href: '/candidates', icon: Users },
     { name: 'Reports', href: '/reports', icon: FileSpreadsheet },
-    { name: 'Profile Settings', href: '/profile', icon: User },
-    { name: isGoogleUser ? 'Set / Change Password' : 'Change Password', href: '/change-password', icon: KeyRound },
+    { name: 'Profile & Settings', href: '/profile', icon: User },
   ];
 
   return (

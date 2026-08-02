@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Sparkles, Menu, LogOut, User, KeyRound, Lock, Settings } from 'lucide-react';
+import { Sparkles, Menu, LogOut, User, Lock } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface NavbarProps {
@@ -21,8 +21,6 @@ export default function Navbar({ collapsed, mobileOpen, setMobileOpen }: NavbarP
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const isGoogleUser = user?.company === 'Google Account' || user?.company === 'Google';
 
   return (
     <header
@@ -86,16 +84,7 @@ export default function Navbar({ collapsed, mobileOpen, setMobileOpen }: NavbarP
                     className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-[#2B241F] hover:bg-[#FAF6F1] transition-colors"
                   >
                     <User className="w-4 h-4 text-[#0047AB]" />
-                    <span>Profile & Account</span>
-                  </Link>
-
-                  <Link
-                    href="/change-password"
-                    onClick={() => setShowDropdown(false)}
-                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-[#2B241F] hover:bg-[#FAF6F1] transition-colors"
-                  >
-                    <Lock className="w-4 h-4 text-[#0047AB]" />
-                    <span>{isGoogleUser ? 'Set / Change Password' : 'Change Password'}</span>
+                    <span>Profile & Password</span>
                   </Link>
 
                   <button
