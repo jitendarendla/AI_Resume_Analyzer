@@ -8,7 +8,7 @@ from app.core.config import settings
 
 def send_smtp_fallback_email(to_email: str, otp_code: str) -> dict:
     """
-    Sends email via SMTP server if RESEND sandbox limits external recipients.
+    Sends email via SMTP server if RESEND limits apply.
     """
     if not settings.SMTP_USERNAME or not settings.SMTP_PASSWORD:
         print(f"[SMTP NOTICE] SMTP credentials not set. Logging OTP {otp_code} for {to_email}.")
@@ -49,10 +49,29 @@ def send_smtp_fallback_email(to_email: str, otp_code: str) -> dict:
 
 def send_resend_otp_email(to_email: str, otp_code: str) -> dict:
     """
-    Sends transactional email OTP verification via Resend REST API, falling back to SMTP if unverified domain restriction occurs.
+    Sends transactional email OTP verification via Resend REST API using verified custom domain.
     """
     api_key = settings.RESEND_API_KEY
-    from_email = settings.RESEND_FROM_EMAIL or "AI Resume Analyzer <onboarding@resend.dev>"
+    if not api_key:
+        return send_smtp_fallback_email(to_email, otp_code)
+
+    # List of verified domain senders to attempt (prioritizing user's verified Resend domain)
+    sender_candidates = [
+        settings.RESEND_FROM_EMAIL,
+        "AI Resume Analyzer <onboarding@airesumeanalyzer.com>",
+        "AI Resume Analyzer <noreply@airesumeanalyzer.com>",
+        "AI Resume Analyzer <onboarding@airesumeanalyzer.con>",
+        "AI Resume Analyzer <noreply@airesumeanalyzer.con>"
+    ]
+
+    # Filter out duplicate senders & avoid resend.dev
+    clean_senders = []
+    for sender in sender_candidates:
+        if sender and sender not in clean_senders and "resend.dev" not in sender:
+            clean_senders.append(sender)
+    
+    if not clean_senders:
+        clean_senders = ["AI Resume Analyzer <onboarding@airesumeanalyzer.com>"]
 
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background-color: #FAF6F1; border-radius: 16px; border: 1px solid #E8E2D9;">
@@ -75,36 +94,37 @@ def send_resend_otp_email(to_email: str, otp_code: str) -> dict:
     </div>
     """
 
-    payload = {
-        "from": from_email,
-        "to": [to_email],
-        "subject": f"Your Verification OTP Code: {otp_code}",
-        "html": html_content
-    }
+    last_error = None
+    for sender_email in clean_senders:
+        payload = {
+            "from": sender_email,
+            "to": [to_email],
+            "subject": f"Your Verification OTP Code: {otp_code}",
+            "html": html_content
+        }
 
-    if not api_key:
-        return send_smtp_fallback_email(to_email, otp_code)
+        try:
+            req = urllib.request.Request(
+                "https://api.resend.com/emails",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "User-Agent": "AI-Resume-Analyzer/1.0"
+                },
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                res_body = json.loads(response.read().decode("utf-8"))
+                print(f"[RESEND SUCCESS] Successfully dispatched email OTP from {sender_email} to {to_email}: {res_body}")
+                return {"status": "sent", "resend_id": res_body.get("id"), "to": to_email, "from": sender_email}
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode("utf-8")
+            last_error = err_body
+            print(f"[RESEND API NOTICE] Failed with from address '{sender_email}': {err_body}")
+        except Exception as e:
+            last_error = str(e)
+            print(f"[RESEND NOTICE] Exception with from address '{sender_email}': {e}")
 
-    try:
-        req = urllib.request.Request(
-            "https://api.resend.com/emails",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "User-Agent": "AI-Resume-Analyzer/1.0"
-            },
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=10) as response:
-            res_body = json.loads(response.read().decode("utf-8"))
-            print(f"[RESEND SUCCESS] Successfully dispatched email OTP to {to_email}: {res_body}")
-            return {"status": "sent", "resend_id": res_body.get("id"), "to": to_email}
-    except urllib.error.HTTPError as e:
-        err_body = e.read().decode("utf-8")
-        print(f"[RESEND API ERROR] Resend HTTP Error {e.code}: {err_body}")
-        # If Resend blocks unverified recipient domain, try SMTP fallback
-        return send_smtp_fallback_email(to_email, otp_code)
-    except Exception as e:
-        print(f"[RESEND NOTICE] Exception during email dispatch: {e}")
-        return send_smtp_fallback_email(to_email, otp_code)
+    print(f"[RESEND ALL FAILED] Attempting SMTP fallback for {to_email}. Last error: {last_error}")
+    return send_smtp_fallback_email(to_email, otp_code)

@@ -25,9 +25,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 # 24 hours
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
 
-    # Resend Email Service Settings
+    # Resend Email Service Settings (Using Verified Custom Domain)
     RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
-    RESEND_FROM_EMAIL: str = os.getenv("RESEND_FROM_EMAIL", "AI Resume Analyzer <onboarding@resend.dev>")
+    RESEND_FROM_EMAIL: str = os.getenv("RESEND_FROM_EMAIL", "AI Resume Analyzer <onboarding@airesumeanalyzer.com>")
 
     # SMTP Fallback Email Settings
     SMTP_SERVER: str = os.getenv("SMTP_SERVER", "smtp.gmail.com")
