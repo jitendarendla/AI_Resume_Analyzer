@@ -12,7 +12,8 @@ import {
   Filter,
   ArrowUpDown,
   Eye,
-  FolderKanban
+  FolderKanban,
+  ListFilter
 } from 'lucide-react';
 
 export default function CandidatesPage() {
@@ -25,6 +26,7 @@ export default function CandidatesPage() {
   const [selectedFolder, setSelectedFolder] = useState('All Folders');
   const [availableFolders, setAvailableFolders] = useState<string[]>([]);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
@@ -39,7 +41,7 @@ export default function CandidatesPage() {
     if (token) {
       fetchCandidates();
     }
-  }, [token, search, minAts, sortBy, sortOrder, selectedFolder, page]);
+  }, [token, search, minAts, sortBy, sortOrder, selectedFolder, page, pageSize]);
 
   const fetchFolders = async () => {
     try {
@@ -57,20 +59,20 @@ export default function CandidatesPage() {
     try {
       const params: any = {
         page,
-        limit: 10,
+        limit: pageSize,
         sort_by: sortBy,
         sort_order: sortOrder,
       };
       if (search) params.search = search;
-      if (minAts > 0) params.min_ats = minAts;
+      if (minAts > 0) params.min_ats_score = minAts;
       if (selectedFolder && selectedFolder !== 'All Folders') {
-        params.folder_name = selectedFolder;
+        params.report_name = selectedFolder;
       }
 
       const response = await api.get('/api/analysis/candidates', { params });
       setCandidates(response.data.candidates || []);
       setTotalPages(response.data.total_pages || 1);
-      setTotalCount(response.data.total_count || 0);
+      setTotalCount(response.data.total_count || response.data.total || 0);
     } catch (err) {
       console.error('Failed to fetch candidates', err);
     } finally {
@@ -89,10 +91,14 @@ export default function CandidatesPage() {
           
           <div className="relative z-10">
             <div className="flex items-center gap-2 text-cyan-400 font-extrabold text-xs tracking-wider uppercase mb-1">
-              <Users className="w-4 h-4 text-cyan-400 animate-pulse" /> Candidate Analysis Engine
+              <Users className="w-4 h-4 text-cyan-400 animate-pulse" /> Candidate Directory
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-heading">Candidates Ranking & JD Match Hub</h1>
-            <p className="text-xs sm:text-sm font-semibold text-slate-400 mt-1">Search, filter, and inspect parsed candidate dossiers folder-wise</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-heading">
+              Candidate Dossiers & Ranking ({totalCount} Total)
+            </h1>
+            <p className="text-xs sm:text-sm font-semibold text-slate-400 mt-1">
+              Search, filter folder-wise, and inspect parsed candidate resumes
+            </p>
           </div>
         </div>
 
@@ -167,8 +173,28 @@ export default function CandidatesPage() {
               >
                 <option value="ats_score-desc" className="bg-slate-900 text-white">ATS Score (High to Low)</option>
                 <option value="ats_score-asc" className="bg-slate-900 text-white">ATS Score (Low to High)</option>
-                <option value="experience_years-desc" className="bg-slate-900 text-white">Experience (High to Low)</option>
+                <option value="experience-desc" className="bg-slate-900 text-white">Experience (High to Low)</option>
                 <option value="name-asc" className="bg-slate-900 text-white">Name (A-Z)</option>
+              </select>
+            </div>
+
+            {/* Show Per Page Selector */}
+            <div className="flex items-center gap-1.5 bg-slate-900/80 border border-white/10 rounded-xl px-3 py-2">
+              <ListFilter className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="text-xs text-slate-400 font-bold hidden sm:inline">Rows:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="bg-transparent text-xs text-slate-200 font-black focus:outline-none cursor-pointer"
+              >
+                <option value={10} className="bg-slate-900 text-white">10</option>
+                <option value={25} className="bg-slate-900 text-white">25</option>
+                <option value={50} className="bg-slate-900 text-white">50</option>
+                <option value={100} className="bg-slate-900 text-white">100</option>
+                <option value={5000} className="bg-slate-900 text-white">Show All</option>
               </select>
             </div>
           </div>
@@ -202,7 +228,7 @@ export default function CandidatesPage() {
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <span className="w-7 h-7 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-black text-xs shrink-0 border border-cyan-500/20 font-mono">
-                            #{idx + 1 + (page - 1) * 10}
+                            #{idx + 1 + (page - 1) * pageSize}
                           </span>
                           <div>
                             <p className="font-bold text-white text-sm">{candidate.name}</p>

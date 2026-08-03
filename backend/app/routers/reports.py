@@ -1,48 +1,15 @@
-from typing import List
-import os
-import shutil
 from datetime import datetime, timedelta, timezone
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_recruiter
-from app.models.models import Recruiter, UploadSession, Candidate, CandidateMatch, UploadHistory, DownloadHistory, AuditLog, Report
-from app.schemas.schemas import CandidateResponse, UploadHistoryResponse, DownloadHistoryResponse
-from app.services.excel_service import generate_excel_report
+from app.models.models import Recruiter, UploadHistory, DownloadHistory, AuditLog, Candidate, UploadSession
+from app.schemas.schemas import UploadHistoryResponse, DownloadHistoryResponse
 
 router = APIRouter(prefix="/api/reports", tags=["Reports & History"])
-
-@router.delete("/purge-all")
-def purge_all_recruiter_data(recruiter: Recruiter = Depends(get_current_recruiter), db: Session = Depends(get_db)):
-    db.query(CandidateMatch).filter(CandidateMatch.candidate_id.in_(
-        db.query(Candidate.id).filter(Candidate.recruiter_id == recruiter.id)
-    )).delete(synchronize_session=False)
-
-    db.query(Candidate).filter(Candidate.recruiter_id == recruiter.id).delete(synchronize_session=False)
-    db.query(UploadSession).filter(UploadSession.recruiter_id == recruiter.id).delete(synchronize_session=False)
-    db.query(Report).filter(Report.recruiter_id == recruiter.id).delete(synchronize_session=False)
-    db.query(UploadHistory).filter(UploadHistory.recruiter_id == recruiter.id).delete(synchronize_session=False)
-    db.query(DownloadHistory).filter(DownloadHistory.recruiter_id == recruiter.id).delete(synchronize_session=False)
-    db.query(AuditLog).filter(AuditLog.recruiter_id == recruiter.id).delete(synchronize_session=False)
-    db.commit()
-
-    storage_dirs = ['storage/uploads', 'storage/reports', 'app/uploads', 'app/reports']
-    for sdir in storage_dirs:
-        if os.path.exists(sdir):
-            for item in os.listdir(sdir):
-                item_path = os.path.join(sdir, item)
-                try:
-                    if os.path.isfile(item_path) or os.path.islink(item_path):
-                        os.unlink(item_path)
-                    elif os.path.isdir(item_path):
-                        shutil.rmtree(item_path)
-                except Exception:
-                    pass
-
-    return {"message": "All recruiter candidates, reports, sessions, and history purged successfully."}
 
 @router.get("/export/{identifier}")
 def export_excel_report(
@@ -57,36 +24,21 @@ def export_excel_report(
     ).first()
 
     if not session_obj:
-        hist = db.query(UploadHistory).filter(
+        hist_obj = db.query(UploadHistory).filter(
             UploadHistory.id == identifier,
             UploadHistory.recruiter_id == recruiter.id
         ).first()
-        if hist and hist.session_id:
-            session_obj = db.query(UploadSession).filter(UploadSession.id == hist.session_id).first()
-        elif hist:
+
+        if hist_obj:
             session_obj = db.query(UploadSession).filter(
-                UploadSession.report_name == hist.report_name,
+                UploadSession.id == hist_obj.session_id,
                 UploadSession.recruiter_id == recruiter.id
-            ).order_by(UploadSession.created_at.desc()).first()
+            ).first()
 
-    if not session_obj:
-        session_obj = db.query(UploadSession).filter(
-            UploadSession.recruiter_id == recruiter.id
-        ).order_by(UploadSession.created_at.desc()).first()
+    if not session_obj or not session_obj.excel_filepath:
+        raise HTTPException(status_code=404, detail="Excel report file not found or expired.")
 
-    if not session_obj:
-        raise HTTPException(status_code=404, detail="No resume analysis session found to export.")
-
-    candidates = db.query(Candidate).filter(Candidate.session_id == session_obj.id).all()
-    if not candidates:
-        candidates = db.query(Candidate).filter(Candidate.recruiter_id == recruiter.id).all()
-
-    cand_data = []
-    for c in candidates:
-        cand_dict = CandidateResponse.model_validate(c).model_dump()
-        cand_data.append(cand_dict)
-
-    excel_path = generate_excel_report(session_obj.report_name, cand_data)
+    excel_path = session_obj.excel_filepath
 
     dl_log = DownloadHistory(
         recruiter_id=recruiter.id,
@@ -182,6 +134,12 @@ def get_dashboard_stats(recruiter: Recruiter = Depends(get_current_recruiter), d
     exp_brackets = {"0-2 Yrs": 0, "2-5 Yrs": 0, "5-8 Yrs": 0, "8+ Yrs": 0}
 
     session_map = {}
+    history_all = db.query(UploadHistory).filter(UploadHistory.recruiter_id == recruiter.id).all()
+    for h in history_all:
+        if h.session_id:
+            session_map[h.session_id] = h.report_name or "General Batch"
+        session_map[h.id] = h.report_name or "General Batch"
+
     sessions_all = db.query(UploadSession).filter(UploadSession.recruiter_id == recruiter.id).all()
     for s in sessions_all:
         session_map[s.id] = s.report_name or "General Batch"
@@ -225,7 +183,6 @@ def get_dashboard_stats(recruiter: Recruiter = Depends(get_current_recruiter), d
     for fname, f_exp in folder_exp_raw.items():
         exp_by_folder[fname] = f_exp
 
-    history_all = db.query(UploadHistory).filter(UploadHistory.recruiter_id == recruiter.id).all()
     folder_counts = {}
     for h in history_all:
         fname = h.report_name or "General Batch"

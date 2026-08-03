@@ -65,9 +65,12 @@ export default function DashboardPage() {
   };
 
   const expByFolderDict = stats?.exp_by_folder || {};
-  const folderNamesList = Object.keys(expByFolderDict);
+  const rawFolderList = Object.keys(expByFolderDict);
+  const folderNamesList = ['All Folders', ...rawFolderList.filter(f => f !== 'All Folders')];
 
-  const activeExpObj = expByFolderDict[selectedExpFolder] || stats?.experience_distribution || {};
+  const activeExpObj = selectedExpFolder === 'All Folders'
+    ? (stats?.experience_distribution || {})
+    : (expByFolderDict[selectedExpFolder] || stats?.experience_distribution || {});
 
   const expData = Object.keys(activeExpObj).length > 0
     ? Object.entries(activeExpObj).map(([name, value]) => ({ name, value: Number(value) || 0 }))
