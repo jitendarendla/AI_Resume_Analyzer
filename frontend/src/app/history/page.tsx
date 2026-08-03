@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
 import { api } from '@/lib/api';
+import { formatLocalDateTime } from '@/lib/dateUtils';
 import { History, FileText, Download, Trash2, ExternalLink, Search } from 'lucide-react';
 import Link from 'next/link';
 
@@ -150,7 +151,7 @@ export default function HistoryPage() {
                           <td className="p-4 font-mono font-bold">{item.resume_count} Resumes</td>
 
                           <td className="p-4 text-[#60534A]">
-                            {new Date(item.created_at).toLocaleString()}
+                            {formatLocalDateTime(item.created_at)}
                           </td>
 
                           <td className="p-4 text-right">
@@ -212,7 +213,7 @@ export default function HistoryPage() {
                           </td>
 
                           <td className="p-4 text-[#60534A]">
-                            {new Date(item.download_date).toLocaleString()}
+                            {formatLocalDateTime(item.download_date)}
                           </td>
 
                           <td className="p-4 text-right">
