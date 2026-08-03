@@ -1,24 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&family=JetBrains+Mono:wght@500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&family=JetBrains+Mono:wght@500;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Sora', 'Plus Jakarta Sans', sans-serif;
+  --font-heading: 'Outfit', 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
 :root {
-  --bg-elevated: #F8F5F1;
-  --bg-card: #FFFFFF;
-  --secondary-foreground: #2B241F;
-  --text-secondary: #60534A;
-  --accent-secondary: #E6C9D8;
-  --secondary: #EFE7DE;
-  --accent: #7FA9D1;
-  --accent-foreground: #FAF6F1;
-  --brand-primary: #0F2C59;
-  --brand-accent: #0047AB;
-  --border-color: #E8E2D9;
+  --bg-elevated: #0B0F19;
+  --bg-card: #111827;
+  --secondary-foreground: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --brand-primary: #0F172A;
+  --brand-accent: #3B82F6;
+  --cyan-accent: #06B6D4;
+  --border-color: rgba(255, 255, 255, 0.08);
 }
 
 * {
@@ -26,16 +23,21 @@
 }
 
 body {
-  background-color: var(--bg-elevated);
-  color: var(--secondary-foreground);
+  background-color: #090D16;
+  color: #F3F4F6;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.10) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(6, 182, 212, 0.08) 0px, transparent 50%);
+  background-attachment: fixed;
 }
 
-/* Stylish Sora Font for Headings, Brand Headers & Buttons */
-h1, h2, h3, h4, h5, h6, .font-heading, .font-display, button, .sleek-btn-primary {
-  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif !important;
+/* Stylish Outfit Font for Headings, Brand Headers & Buttons */
+h1, h2, h3, h4, h5, h6, .font-heading, .font-display, button, .sleek-btn-primary, .btn-cyber {
+  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif !important;
   letter-spacing: -0.025em;
 }
 
@@ -49,84 +51,81 @@ input, select, textarea, label {
   font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* Custom Sleek Scrollbar */
+/* Custom Cyber Dark Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #F1ECE6;
+  background: #090D16;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D9D0C5;
+  background: #1E293B;
   border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #C4B8A9;
+  background: #334155;
 }
 
-/* Card glassmorphism and subtle elevation */
-.sleek-card {
-  background: #FFFFFF;
-  border: 1px solid #E8E2D9;
-  box-shadow: 0 4px 20px -4px rgba(43, 36, 31, 0.04), 0 2px 6px -2px rgba(43, 36, 31, 0.02);
-  border-radius: 1.25rem;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+/* Ultra-Sleek Glassmorphic Card */
+.sleek-card, .glass-card {
+  background: rgba(17, 24, 39, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+  border-radius: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sleek-card:hover {
-  border-color: #D6CCC0;
-  box-shadow: 0 8px 30px -4px rgba(43, 36, 31, 0.08), 0 4px 12px -2px rgba(43, 36, 31, 0.04);
+.sleek-card:hover, .glass-card:hover {
+  border-color: rgba(6, 182, 212, 0.3);
+  box-shadow: 0 15px 35px -5px rgba(6, 182, 212, 0.15), 0 8px 20px -4px rgba(0, 0, 0, 0.4);
 }
 
-/* Primary Action Buttons */
-.sleek-btn-primary {
-  background: linear-gradient(135deg, #0F2C59 0%, #0047AB 100%);
+/* Primary Action Cyber Buttons */
+.sleek-btn-primary, .btn-cyber {
+  background: linear-gradient(135deg, #0284C7 0%, #2563EB 50%, #7C3AED 100%);
   color: #FFFFFF;
-  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif !important;
+  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif !important;
   font-weight: 800;
-  border-radius: 0.875rem;
-  padding: 0.625rem 1.25rem;
-  transition: all 0.2s ease;
+  border-radius: 1rem;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
-  items-center: center;
+  align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  box-shadow: 0 4px 14px 0 rgba(0, 71, 171, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 20px 0 rgba(37, 99, 235, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.sleek-btn-primary:hover {
-  background: linear-gradient(135deg, #133870 0%, #0056D6 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px 0 rgba(0, 71, 171, 0.35);
+.sleek-btn-primary:hover, .btn-cyber:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px 0 rgba(6, 182, 212, 0.5);
+  background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 50%, #8B5CF6 100%);
 }
 
-.sleek-btn-primary:active {
+.sleek-btn-primary:active, .btn-cyber:active {
   transform: translateY(0);
 }
 
-/* Secondary Buttons */
-.sleek-btn-secondary {
-  background: #EFE7DE;
-  color: #0F2C59;
-  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif !important;
-  font-weight: 800;
-  border-radius: 0.875rem;
-  padding: 0.625rem 1.25rem;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  items-center: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border: 1px solid #E2D7CB;
+/* Gradient Text Effect */
+.gradient-text {
+  background: linear-gradient(135deg, #38BDF8 0%, #818CF8 50%, #C084FC 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.sleek-btn-secondary:hover {
-  background: #E6DCF2;
-  color: #0F2C59;
-  border-color: #D4C6CE;
+/* Glow Accent Background */
+.glow-backdrop {
+  position: absolute;
+  filter: blur(80px);
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: 0.25;
 }

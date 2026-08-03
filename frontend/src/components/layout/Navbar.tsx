@@ -24,7 +24,7 @@ export default function Navbar({ collapsed, mobileOpen, setMobileOpen }: NavbarP
 
   return (
     <header
-      className={`fixed top-0 right-0 z-30 h-16 bg-[#FAF6F1]/90 backdrop-blur-md border-b border-[#E8E2D9] transition-all duration-300 flex items-center left-0 ${
+      className={`fixed top-0 right-0 z-30 h-16 bg-[#090D16]/80 backdrop-blur-xl border-b border-white/10 transition-all duration-300 flex items-center left-0 ${
         collapsed ? 'md:left-20' : 'md:left-20 lg:left-64'
       }`}
       suppressHydrationWarning
@@ -34,56 +34,56 @@ export default function Navbar({ collapsed, mobileOpen, setMobileOpen }: NavbarP
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileOpen && setMobileOpen(!mobileOpen)}
-            className="p-2 rounded-xl bg-[#EFE7DE] border border-[#E2D7CB] text-[#2B241F] hover:bg-[#E6DCF2] md:hidden cursor-pointer transition-colors"
+            className="p-2 rounded-xl bg-slate-800/80 border border-white/10 text-slate-200 hover:bg-slate-700 md:hidden cursor-pointer transition-colors"
             title="Toggle Menu"
           >
-            <Menu className="w-5 h-5 text-[#0F2C59]" />
+            <Menu className="w-5 h-5 text-cyan-400" />
           </button>
           
-          <div className="flex items-center gap-2 md:hidden">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#0F2C59] to-[#0047AB] p-0.5 flex items-center justify-center">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain rounded" />
+          <div className="flex items-center gap-2.5 md:hidden">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 p-0.5 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain rounded-lg" />
             </div>
-            <span className="font-black text-xs text-[#2B241F] tracking-wider uppercase font-sans">AI RESUME</span>
+            <span className="font-black text-xs text-white tracking-wider uppercase font-heading">AI RESUME</span>
           </div>
         </div>
 
         {/* Right User Controls */}
         <div className="flex items-center gap-3 sm:gap-4">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EFE7DE] border border-[#E2D7CB] text-[11px] font-extrabold text-[#60534A]">
-            <Sparkles className="w-3.5 h-3.5 text-[#0047AB]" />
-            <span>AI Engine Active</span>
+          <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800/80 border border-cyan-500/30 text-[11px] font-extrabold text-cyan-300 shadow-md shadow-cyan-500/5">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+            <span>AI Engine 100% Active</span>
           </div>
 
           {mounted && user ? (
             <div className="relative">
               <button
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="flex items-center gap-2.5 p-1.5 rounded-2xl bg-[#EFE7DE] border border-[#E2D7CB] hover:bg-[#E8DDD0] transition-all cursor-pointer"
+                className="flex items-center gap-2.5 p-1.5 rounded-2xl bg-slate-800/80 border border-white/10 hover:border-cyan-500/40 transition-all cursor-pointer shadow-md"
               >
-                <div className="w-8 h-8 rounded-xl bg-[#0F2C59] text-white flex items-center justify-center font-black text-xs shadow-sm">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center font-black text-xs shadow-md">
                   {user.full_name ? user.full_name.charAt(0).toUpperCase() : (user.name ? user.name.charAt(0).toUpperCase() : 'U')}
                 </div>
-                <span className="text-xs font-black text-[#2B241F] hidden sm:inline pr-1">
+                <span className="text-xs font-black text-slate-200 hidden sm:inline pr-1">
                   {user.full_name || user.name || 'Recruiter'}
                 </span>
               </button>
 
               {/* User Menu Dropdown */}
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-60 bg-white border border-[#E8E2D9] rounded-2xl shadow-xl p-2 z-50 space-y-1 animate-in fade-in">
-                  <div className="p-3 bg-[#FAF6F1] rounded-xl border border-[#E8E2D9]">
-                    <p className="text-xs font-black text-[#2B241F] truncate">{user.full_name || user.name}</p>
-                    <p className="text-[10px] font-bold text-[#60534A] truncate">{user.email}</p>
-                    {user.company && <p className="text-[10px] font-semibold text-[#0047AB] mt-0.5">{user.company}</p>}
+                <div className="absolute right-0 mt-2 w-64 bg-[#0F172A] border border-white/10 rounded-2xl shadow-2xl p-2 z-50 space-y-1 animate-in fade-in backdrop-blur-xl">
+                  <div className="p-3 bg-slate-800/60 rounded-xl border border-white/5 space-y-0.5">
+                    <p className="text-xs font-black text-white truncate">{user.full_name || user.name}</p>
+                    <p className="text-[10px] font-bold text-slate-400 truncate">{user.email}</p>
+                    {user.company && <p className="text-[10px] font-bold text-cyan-400 mt-1">{user.company}</p>}
                   </div>
 
                   <Link
                     href="/change-password"
                     onClick={() => setShowDropdown(false)}
-                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-[#2B241F] hover:bg-[#FAF6F1] transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:bg-slate-800 hover:text-cyan-400 transition-colors"
                   >
-                    <KeyRound className="w-4 h-4 text-[#0047AB]" />
+                    <KeyRound className="w-4 h-4 text-cyan-400" />
                     <span>Change Password</span>
                   </Link>
 
@@ -92,9 +92,9 @@ export default function Navbar({ collapsed, mobileOpen, setMobileOpen }: NavbarP
                       setShowDropdown(false);
                       logoutUser();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4 text-rose-600" />
+                    <LogOut className="w-4 h-4 text-rose-400" />
                     <span>Sign Out</span>
                   </button>
                 </div>
@@ -102,10 +102,10 @@ export default function Navbar({ collapsed, mobileOpen, setMobileOpen }: NavbarP
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Link href="/login" className="text-xs font-black text-[#60534A] hover:text-[#2B241F] transition-colors cursor-pointer px-2 sm:px-3 py-2">
+              <Link href="/login" className="text-xs font-black text-slate-300 hover:text-white transition-colors cursor-pointer px-3 py-2">
                 Sign In
               </Link>
-              <Link href="/register" className="sleek-btn-primary text-xs cursor-pointer px-3 py-2">
+              <Link href="/register" className="sleek-btn-primary text-xs cursor-pointer px-3.5 py-2">
                 Create Account
               </Link>
             </div>

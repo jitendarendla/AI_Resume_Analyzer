@@ -45,116 +45,120 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F5F1] text-[#2B241F] flex flex-col items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden">
-      <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-white shadow-xl space-y-5 relative z-10 border border-[#E8E2D9]">
+    <div className="min-h-screen bg-[#090D16] text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden">
+      {/* Background ambient lighting */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-[#111827]/80 backdrop-blur-2xl shadow-2xl space-y-5 relative z-10 border border-white/10">
         {/* Header */}
         <div className="text-center space-y-3">
           <Link href="/" className="inline-flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0F2C59] via-[#0047AB] to-[#2563EB] p-1 flex items-center justify-center shrink-0 shadow-md border border-blue-400/30">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 p-0.5 flex items-center justify-center shrink-0 shadow-lg shadow-cyan-500/20 border border-white/20">
               <img src="/logo.png" alt="AI Resume Analyzer Logo Icon" className="w-full h-full object-contain rounded-xl" />
             </div>
           </Link>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-[#2B241F]">Create Recruiter Account</h1>
-            <p className="text-xs font-semibold text-[#60534A] mt-1">High-Security JWT Authentication & PostgreSQL Database</p>
+            <h1 className="text-xl sm:text-2xl font-black text-white font-heading">Create Recruiter Account</h1>
+            <p className="text-xs font-semibold text-slate-400 mt-1">High-Security JWT Authentication & PostgreSQL Database</p>
           </div>
         </div>
 
         {error && (
-          <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold flex items-start gap-2 animate-in fade-in">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+          <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold flex items-start gap-2.5 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-[#1E6B43] text-xs font-bold flex items-start gap-2 animate-in fade-in">
-            <CheckCircle2 className="w-4 h-4 text-[#1E6B43] shrink-0 mt-0.5" />
+          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold flex items-start gap-2.5 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <span>{success}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
-            <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-black text-slate-200 uppercase tracking-wider mb-1.5 font-heading">
               Full Name
             </label>
             <div className="relative">
-              <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
+              <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 required
                 placeholder="Sarah Connor"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#0F2C59] font-bold"
+                className="w-full bg-slate-900/80 border border-white/10 text-white text-xs rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-cyan-500 font-bold placeholder-slate-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-black text-slate-200 uppercase tracking-wider mb-1.5 font-heading">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
+              <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="email"
                 required
                 placeholder="sarah@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#0F2C59] font-bold"
+                className="w-full bg-slate-900/80 border border-white/10 text-white text-xs rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-cyan-500 font-bold placeholder-slate-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-black text-slate-200 uppercase tracking-wider mb-1.5 font-heading">
               Company / Agency Name
             </label>
             <div className="relative">
-              <Building className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
+              <Building className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Global Talent Solutions"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#0F2C59] font-bold"
+                className="w-full bg-slate-900/80 border border-white/10 text-white text-xs rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-cyan-500 font-bold placeholder-slate-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-black text-slate-200 uppercase tracking-wider mb-1.5 font-heading">
               Password
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
+              <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="password"
                 required
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#0F2C59] font-bold"
+                className="w-full bg-slate-900/80 border border-white/10 text-white text-xs rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-cyan-500 font-bold placeholder-slate-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-black text-[#2B241F] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-black text-slate-200 uppercase tracking-wider mb-1.5 font-heading">
               Confirm Password
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7E72]" />
+              <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="password"
                 required
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-[#FAF6F1] border border-[#E2D7CB] text-[#2B241F] text-xs rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#0F2C59] font-bold"
+                className="w-full bg-slate-900/80 border border-white/10 text-white text-xs rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-cyan-500 font-bold placeholder-slate-500"
               />
             </div>
           </div>
@@ -162,7 +166,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="sleek-btn-primary w-full text-xs font-black py-3.5 cursor-pointer disabled:opacity-50 mt-2 shadow-lg"
+            className="sleek-btn-primary w-full text-xs font-black py-3.5 cursor-pointer disabled:opacity-50 mt-2 shadow-xl shadow-cyan-500/20"
           >
             {loading ? (
               <span className="flex items-center gap-2 justify-center">
@@ -179,9 +183,9 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <div className="pt-3 text-center border-t border-[#E8E2D9] text-xs font-semibold text-[#60534A]">
+        <div className="pt-3 text-center border-t border-white/10 text-xs font-semibold text-slate-400">
           Already registered?{' '}
-          <Link href="/login" className="font-black text-[#0047AB] hover:underline">
+          <Link href="/login" className="font-black text-cyan-400 hover:underline">
             Sign In Here
           </Link>
         </div>
