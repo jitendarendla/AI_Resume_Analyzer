@@ -40,7 +40,6 @@ class ResetPasswordOTPRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     current_password: str = Field(..., min_length=1)
-    otp_code: str = Field(..., min_length=6, max_length=6)
     new_password: str = Field(..., min_length=6)
     confirm_password: str = Field(..., min_length=6)
 
@@ -171,7 +170,7 @@ def verify_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
     return {"message": "OTP verification successful."}
 
 @router.post("/change-password")
-def change_password_with_current_and_otp(
+def change_password_simple(
     body: ChangePasswordRequest,
     recruiter: Recruiter = Depends(get_current_recruiter),
     db: Session = Depends(get_db)
@@ -182,40 +181,22 @@ def change_password_with_current_and_otp(
             detail="Incorrect old password."
         )
 
-    otp_record = db.query(OTP).filter(
-        OTP.email == recruiter.email,
-        OTP.otp_code == body.otp_code,
-        OTP.is_used == False
-    ).order_by(OTP.created_at.desc()).first()
-
-    if not otp_record:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired OTP verification code."
-        )
-
-    now_utc = datetime.now(timezone.utc)
-    record_expires = otp_record.expires_at
-    if record_expires.tzinfo is None:
-        record_expires = record_expires.replace(tzinfo=timezone.utc)
-
-    if now_utc > record_expires:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="OTP verification code has expired. Please send a new code."
-        )
-
     if body.new_password != body.confirm_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="New password and confirm password do not match."
         )
 
+    if len(body.new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 6 characters long."
+        )
+
     recruiter.password_hash = get_password_hash(body.new_password)
-    otp_record.is_used = True
     db.commit()
 
-    return {"message": "Password changed successfully. Please log in with your new password."}
+    return {"message": "Password changed successfully."}
 
 @router.post("/reset-password-with-otp")
 def reset_password_with_otp(body: ResetPasswordOTPRequest, db: Session = Depends(get_db)):
