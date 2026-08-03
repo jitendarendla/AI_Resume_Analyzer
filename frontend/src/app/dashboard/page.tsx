@@ -89,18 +89,13 @@ export default function DashboardPage() {
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>
           <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl pointer-events-none"></div>
 
-          <div className="relative z-10 space-y-4 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800/80 border border-cyan-500/30 text-xs font-extrabold text-cyan-300 shadow-lg">
-              <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
-              <span>Next-Gen Talent Studio</span>
-            </div>
-
+          <div className="relative z-10 space-y-3 max-w-2xl">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight font-heading leading-tight">
-              Talent Intelligence Studio
+              AI Resume Analyzer
             </h1>
 
             <p className="text-sm sm:text-base font-semibold text-slate-400">
-              Bulk resume evaluation, real-world candidate scoring, and instant JD match reporting.
+              Candidate evaluation & Job Description matching platform
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">

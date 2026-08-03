@@ -11,9 +11,7 @@ import {
   FileSpreadsheet,
   History,
   LogOut,
-  Sparkles,
-  KeyRound,
-  UserCheck
+  KeyRound
 } from 'lucide-react';
 
 export default function FloatingDock() {
@@ -27,7 +25,7 @@ export default function FloatingDock() {
   }, []);
 
   const navItems = [
-    { name: 'Studio', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Upload', href: '/upload', icon: UploadCloud },
     { name: 'Candidates', href: '/candidates', icon: Users },
     { name: 'History', href: '/history', icon: History },
@@ -36,14 +34,14 @@ export default function FloatingDock() {
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center pointer-events-auto max-w-[95vw]" suppressHydrationWarning>
-      <div className="flex items-center gap-2 p-2 rounded-full bg-[#111827]/85 backdrop-blur-2xl border border-white/15 shadow-2xl shadow-cyan-500/10">
+      <div className="flex items-center gap-2 p-2 rounded-full bg-[#111827]/90 backdrop-blur-2xl border border-white/15 shadow-2xl shadow-cyan-500/10">
         {/* Brand Emblem */}
         <Link href="/dashboard" className="flex items-center pl-2 pr-3 py-1.5 rounded-full bg-slate-900/80 border border-white/10 hover:border-cyan-500/40 transition-all gap-2 group cursor-pointer">
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 p-0.5 flex items-center justify-center shrink-0 shadow-md shadow-cyan-500/20">
             <img src="/logo.png" alt="Logo" className="w-full h-full object-contain rounded-full" />
           </div>
-          <span className="text-xs font-black text-white tracking-wider font-heading hidden sm:inline group-hover:text-cyan-300 transition-colors">
-            AI STUDIO
+          <span className="text-xs font-black text-white tracking-wider font-heading hidden sm:inline group-hover:text-cyan-300 transition-colors uppercase">
+            AI RESUME
           </span>
         </Link>
 
