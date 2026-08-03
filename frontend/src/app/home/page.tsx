@@ -2,24 +2,23 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Navbar from '@/components/layout/Navbar';
+import FloatingDock from '@/components/layout/FloatingDock';
 import { useAuth } from '@/context/AuthContext';
 import {
   UploadCloud,
   FileSpreadsheet,
   Users,
-  BarChart3,
   CheckCircle2,
   ArrowRight,
-  ShieldCheck,
-  Zap,
   Sparkles,
   Search,
-  Database,
   Download,
-  Star,
-  ChevronRight,
-  UserCheck,
-  LogIn
+  Layers,
+  Zap,
+  ShieldCheck,
+  BarChart3,
+  LayoutDashboard
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -28,219 +27,121 @@ export default function HomePage() {
 
   useEffect(() => {
     setMounted(true);
-    // Security Directive: Navigating to Home page clears stored token session
-    if (typeof window !== 'undefined' && localStorage.getItem('token')) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('recruiter');
-    }
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-blue-600 selection:text-white" suppressHydrationWarning>
-      {/* Navigation Bar */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0b132b]/90 backdrop-blur-md border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/home" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0047AB] p-1 flex items-center justify-center shrink-0 shadow-lg border border-blue-400/30">
-              <img src="/logo.png" alt="AI Resume Analyzer Logo" className="w-full h-full object-contain rounded-lg" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-black text-base text-white tracking-wider leading-none uppercase">
-                AI RESUME
-              </span>
-              <span className="text-[10px] text-cyan-400 font-extrabold tracking-widest uppercase mt-0.5">
-                ANALYZER
-              </span>
-            </div>
-          </Link>
+    <div className="min-h-screen bg-[#090D16] text-slate-100 font-sans pb-32 selection:bg-cyan-500 selection:text-slate-950" suppressHydrationWarning>
+      <Navbar />
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-bold text-slate-300">
-            <a href="#features" className="hover:text-cyan-400 transition-colors">Features</a>
-            <a href="#how-it-works" className="hover:text-cyan-400 transition-colors">How It Works</a>
-            <a href="#analytics" className="hover:text-cyan-400 transition-colors">Analytics</a>
-            <a href="#enterprise" className="hover:text-cyan-400 transition-colors">Enterprise</a>
-          </nav>
+      <main className="pt-20 sm:pt-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-12">
+        {/* Studio Hero Banner */}
+        <div className="p-8 sm:p-14 rounded-3xl bg-gradient-to-br from-slate-900 via-blue-950/60 to-slate-950 border border-white/10 shadow-2xl relative overflow-hidden backdrop-blur-2xl text-center space-y-6">
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl pointer-events-none"></div>
 
-          <div className="flex items-center gap-4">
-            <Link
-              href="/login"
-              className="text-xs font-bold text-slate-300 hover:text-white transition-colors"
-            >
-              Recruiter Sign In
-            </Link>
-            <Link
-              href="/login"
-              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all"
-            >
-              <span>Get Started</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <section className="pt-36 pb-24 relative overflow-hidden bg-gradient-to-b from-[#0b132b] via-[#0047AB]/20 to-slate-900">
-        <div className="max-w-4xl mx-auto px-6 text-center space-y-8 relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-400/30 text-cyan-300 text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 text-cyan-400" />
-            <span>Next-Gen Enterprise Resume Parsing Engine</span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800/80 border border-cyan-500/30 text-xs font-extrabold text-cyan-300 shadow-lg relative z-10">
+            <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+            <span>AI-Powered Resume Analysis & ATS Match Engine</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight">
-            AI-Powered Bulk <br className="hidden sm:block" />
-            <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-300 bg-clip-text text-transparent">
-              Resume Analyzer
-            </span> & ATS Matcher
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight font-heading leading-tight max-w-4xl mx-auto relative z-10">
+            AI Resume <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">Analyzer</span> & ATS Matcher
           </h1>
 
-          <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto font-medium leading-relaxed">
-            Upload hundreds of candidate CVs in seconds. Extract 100% accurate skills, contact details, education, work experience, and generate instant Job Description match scoring reports.
+          <p className="text-sm sm:text-lg font-semibold text-slate-400 max-w-2xl mx-auto relative z-10">
+            Evaluate hundreds of candidate resumes in seconds. Extract skills, work history, ATS match scores, and export structured Excel reports.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 justify-center">
-            <Link
-              href="/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/40 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5"
-            >
-              <span>Get Started</span>
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              href="/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 font-bold text-sm border border-slate-700 flex items-center justify-center gap-3 transition-all"
-            >
-              <LogIn className="w-5 h-5 text-blue-400" />
-              <span>Recruiter Sign In</span>
-            </Link>
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-4 relative z-10">
+            {mounted && token ? (
+              <Link
+                href="/dashboard"
+                className="sleek-btn-primary text-sm px-7 py-3.5 cursor-pointer shadow-xl shadow-cyan-500/20 flex items-center gap-2"
+              >
+                <LayoutDashboard className="w-5 h-5" />
+                <span>Go to Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="sleek-btn-primary text-sm px-7 py-3.5 cursor-pointer shadow-xl shadow-cyan-500/20 flex items-center gap-2"
+                >
+                  <Zap className="w-5 h-5" />
+                  <span>Get Started Now</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+
+                <Link
+                  href="/register"
+                  className="px-6 py-3.5 rounded-2xl bg-slate-800/80 border border-white/10 text-slate-200 hover:bg-slate-700 hover:text-white font-black text-sm transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <span>Recruiter Register</span>
+                </Link>
+              </>
+            )}
           </div>
 
-          <div className="pt-10 grid grid-cols-3 gap-6 border-t border-slate-800/80 max-w-2xl mx-auto text-center">
-            <div>
-              <p className="text-3xl font-black text-white">1000+</p>
-              <p className="text-xs text-slate-400 font-medium mt-1">Resumes per Batch</p>
-            </div>
-            <div>
-              <p className="text-3xl font-black text-cyan-400">100%</p>
-              <p className="text-xs text-slate-400 font-medium mt-1">Accurate Extraction</p>
-            </div>
-            <div>
-              <p className="text-3xl font-black text-indigo-400">⚡ &lt;2s</p>
-              <p className="text-xs text-slate-400 font-medium mt-1">Parallel Processing</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Highlights Grid */}
-      <section id="features" className="py-24 bg-slate-950 relative">
-        <div className="max-w-7xl mx-auto px-6 space-y-16">
-          <div className="text-center space-y-4 max-w-3xl mx-auto">
-            <h2 className="text-3xl font-black text-white tracking-tight">Built for Modern HR Teams & Enterprise Recruiters</h2>
-            <p className="text-slate-400 text-sm">Automate candidate evaluation, eliminate manual resume reading, and make data-driven hiring decisions.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-8 rounded-3xl bg-slate-900 border border-slate-800 hover:border-blue-500/50 transition-all space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                <Zap className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white">High Concurrency Bulk Parsing</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Upload up to 1000+ resumes per batch. Our 32-worker parallel engine parses PDF, DOCX, and TXT files instantly.
-              </p>
+          {/* Quick Metrics Strip */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-white/10 relative z-10">
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/5">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-heading">Parsing Speed</span>
+              <span className="text-xl font-black text-cyan-400 font-mono">100 CVs / Sec</span>
             </div>
 
-            <div className="p-8 rounded-3xl bg-slate-900 border border-slate-800 hover:border-blue-500/50 transition-all space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
-                <UserCheck className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white">100% Accurate Data Extraction</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Extract candidate names, emails, phone numbers, locations, skills, education, certifications, and links without fake placeholders.
-              </p>
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/5">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-heading">Supported Formats</span>
+              <span className="text-xl font-black text-purple-400 font-mono">PDF & DOCX</span>
             </div>
 
-            <div className="p-8 rounded-3xl bg-slate-900 border border-slate-800 hover:border-blue-500/50 transition-all space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                <FileSpreadsheet className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white">Instant Excel Report Generator</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Download structured OpenPyXL `.xlsx` candidate spreadsheets with custom ATS scores, skill matrices, and contact details.
-              </p>
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/5">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-heading">Report Export</span>
+              <span className="text-xl font-black text-emerald-400 font-mono">1-Click Excel</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/5">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-heading">Folder Batches</span>
+              <span className="text-xl font-black text-amber-400 font-mono">Unlimited</span>
             </div>
           </div>
         </div>
-      </section>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="py-24 bg-slate-900">
-        <div className="max-w-7xl mx-auto px-6 space-y-16">
-          <div className="text-center space-y-4 max-w-3xl mx-auto">
-            <h2 className="text-3xl font-black text-white tracking-tight">How AI Resume Analyzer Works</h2>
-            <p className="text-slate-400 text-sm">Four simple steps to evaluate bulk resumes and shortlist top talent.</p>
+        {/* Feature Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-7 rounded-3xl bg-[#111827]/80 border border-white/10 shadow-xl backdrop-blur-xl space-y-4 hover:border-cyan-500/40 transition-all duration-300">
+            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center font-black shadow-md">
+              <UploadCloud className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-black text-white font-heading">Bulk Resume Upload</h3>
+            <p className="text-xs font-semibold text-slate-400 leading-relaxed">
+              Upload multiple PDF or DOCX candidate resumes at once. Auto-group into custom folder batches.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="p-6 rounded-2xl bg-slate-800/60 border border-slate-700/80 space-y-3">
-              <span className="text-2xl font-black text-blue-400">01</span>
-              <h4 className="font-extrabold text-white text-base">Bulk Upload</h4>
-              <p className="text-xs text-slate-400">Drag & drop candidate resumes or entire folder batches into the upload queue.</p>
+          <div className="p-7 rounded-3xl bg-[#111827]/80 border border-white/10 shadow-xl backdrop-blur-xl space-y-4 hover:border-cyan-500/40 transition-all duration-300">
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center font-black shadow-md">
+              <Search className="w-6 h-6" />
             </div>
+            <h3 className="text-lg font-black text-white font-heading">JD Match & ATS Scoring</h3>
+            <p className="text-xs font-semibold text-slate-400 leading-relaxed">
+              Compare candidate skills against your Job Description. Get instant ATS match percentages and experience rankings.
+            </p>
+          </div>
 
-            <div className="p-6 rounded-2xl bg-slate-800/60 border border-slate-700/80 space-y-3">
-              <span className="text-2xl font-black text-cyan-400">02</span>
-              <h4 className="font-extrabold text-white text-base">Target JD Input</h4>
-              <p className="text-xs text-slate-400">Paste your job description requirements to enable automated ATS skill matching.</p>
+          <div className="p-7 rounded-3xl bg-[#111827]/80 border border-white/10 shadow-xl backdrop-blur-xl space-y-4 hover:border-cyan-500/40 transition-all duration-300">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-black shadow-md">
+              <FileSpreadsheet className="w-6 h-6" />
             </div>
-
-            <div className="p-6 rounded-2xl bg-slate-800/60 border border-slate-700/80 space-y-3">
-              <span className="text-2xl font-black text-indigo-400">03</span>
-              <h4 className="font-extrabold text-white text-base">AI Extraction</h4>
-              <p className="text-xs text-slate-400">Parallel NLP workers extract skills, experience years, education degrees, and contact details.</p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-800/60 border border-slate-700/80 space-y-3">
-              <span className="text-2xl font-black text-emerald-400">04</span>
-              <h4 className="font-extrabold text-white text-base">Export Report</h4>
-              <p className="text-xs text-slate-400">View analytics in Candidate Hub and export 100% formatted Excel reports instantly.</p>
-            </div>
+            <h3 className="text-lg font-black text-white font-heading">Formatted Excel Reports</h3>
+            <p className="text-xs font-semibold text-slate-400 leading-relaxed">
+              Export ranked candidate sheets directly into formatted `.xlsx` workbooks for client or HR review.
+            </p>
           </div>
         </div>
-      </section>
+      </main>
 
-      {/* CTA Footer Banner */}
-      <section className="py-20 bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 text-center relative overflow-hidden">
-        <div className="max-w-4xl mx-auto px-6 space-y-6 relative z-10">
-          <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Ready to Accelerate Your Recruitment Process?</h2>
-          <p className="text-blue-100 text-sm max-w-xl mx-auto">Start analyzing bulk candidate resumes today with our enterprise-grade platform.</p>
-          <div className="pt-2">
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-white text-blue-800 font-black text-sm shadow-2xl hover:bg-blue-50 transition-all transform hover:scale-105"
-            >
-              <span>Get Started</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-12 bg-slate-950 border-t border-slate-800 text-xs text-slate-400">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="AI Resume Analyzer Logo" className="h-8 w-auto object-contain rounded-lg" />
-            <span className="font-bold text-white">AI RESUME ANALYZER</span>
-          </div>
-          <p>© {new Date().getFullYear()} AI Resume Analyzer Portal. All rights reserved.</p>
-          <div className="flex items-center gap-6">
-            <Link href="/login" className="hover:text-white">Sign In</Link>
-            <Link href="/register" className="hover:text-white">Register</Link>
-          </div>
-        </div>
-      </footer>
+      {mounted && token && <FloatingDock />}
     </div>
   );
 }
