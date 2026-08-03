@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
+import FloatingDock from '@/components/layout/FloatingDock';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import {
@@ -212,13 +212,11 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090D16] text-slate-100 flex font-sans" suppressHydrationWarning>
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-      <div className={`flex-1 transition-all duration-300 ml-0 ${collapsed ? 'md:ml-20' : 'md:ml-20 lg:ml-64'}`}>
-        <Navbar collapsed={collapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+    <div className="min-h-screen bg-[#090D16] text-slate-100 font-sans pb-32" suppressHydrationWarning>
+      <Navbar />
 
-        <main className="pt-20 sm:pt-24 lg:pt-28 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
-          {/* Header */}
+      <main className="pt-24 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
+        {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-blue-950/80 to-slate-900 border border-white/10 shadow-2xl relative overflow-hidden backdrop-blur-xl">
             <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
             
@@ -404,73 +402,73 @@ export default function UploadPage() {
               </div>
             </div>
           </form>
+
+          {/* Progress & Success Modal */}
+          {uploading && (
+            <div className="fixed inset-0 z-50 bg-[#090D16]/80 backdrop-blur-md flex items-center justify-center p-4">
+              <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4">
+                <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto border border-cyan-500/20 shadow-lg">
+                  <RotateCw className="w-8 h-8 animate-spin" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white font-heading">Processing Resumes with AI</h3>
+                  <p className="text-xs font-bold text-slate-400 mt-1">{statusMessage}</p>
+                </div>
+
+                <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-white/5">
+                  <div
+                    className="bg-gradient-to-r from-cyan-500 to-blue-600 h-full transition-all duration-300 rounded-full"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs font-mono font-black text-cyan-400">{progress}% Completed</p>
+              </div>
+            </div>
+          )}
+
+          {showSuccessModal && (
+            <div className="fixed inset-0 z-50 bg-[#090D16]/80 backdrop-blur-md flex items-center justify-center p-4">
+              <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-5 animate-in fade-in zoom-in">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20 shadow-lg">
+                  <CheckCircle className="w-8 h-8" />
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-black text-white font-heading">Resume Processing Complete!</h3>
+                  <p className="text-xs font-bold text-slate-400 mt-1">
+                    Successfully parsed <span className="text-emerald-400 font-mono font-black">{processedCount}</span> candidate profiles into <span className="text-cyan-400 font-black">{reportName}</span> folder.
+                  </p>
+                </div>
+
+                <div className="space-y-2.5 pt-2">
+                  <button
+                    onClick={handleDownloadExcel}
+                    className="sleek-btn-primary w-full text-xs font-black py-3.5 cursor-pointer shadow-lg shadow-cyan-500/20"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download Excel Report (.xlsx)</span>
+                  </button>
+
+                  <button
+                    onClick={handleReanalyze}
+                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-800 border border-white/10 text-slate-200 hover:bg-slate-700 font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <RotateCw className="w-4 h-4" />
+                    <span>Re-Analyze with New Requirements</span>
+                  </button>
+
+                  <Link
+                    href={`/candidates?session_id=${currentSessionId}`}
+                    className="block text-xs font-black text-cyan-400 hover:underline pt-2"
+                  >
+                    View Candidates & Match Breakdown →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
-      </div>
-
-      {/* Progress & Success Modal */}
-      {uploading && (
-        <div className="fixed inset-0 z-50 bg-[#090D16]/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto border border-cyan-500/20 shadow-lg">
-              <RotateCw className="w-8 h-8 animate-spin" />
-            </div>
-            <div>
-              <h3 className="text-lg font-black text-white font-heading">Processing Resumes with AI</h3>
-              <p className="text-xs font-bold text-slate-400 mt-1">{statusMessage}</p>
-            </div>
-
-            <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-white/5">
-              <div
-                className="bg-gradient-to-r from-cyan-500 to-blue-600 h-full transition-all duration-300 rounded-full"
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
-            <p className="text-xs font-mono font-black text-cyan-400">{progress}% Completed</p>
-          </div>
-        </div>
-      )}
-
-      {showSuccessModal && (
-        <div className="fixed inset-0 z-50 bg-[#090D16]/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-5 animate-in fade-in zoom-in">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20 shadow-lg">
-              <CheckCircle className="w-8 h-8" />
-            </div>
-
-            <div>
-              <h3 className="text-xl font-black text-white font-heading">Resume Processing Complete!</h3>
-              <p className="text-xs font-bold text-slate-400 mt-1">
-                Successfully parsed <span className="text-emerald-400 font-mono font-black">{processedCount}</span> candidate profiles into <span className="text-cyan-400 font-black">{reportName}</span> folder.
-              </p>
-            </div>
-
-            <div className="space-y-2.5 pt-2">
-              <button
-                onClick={handleDownloadExcel}
-                className="sleek-btn-primary w-full text-xs font-black py-3.5 cursor-pointer shadow-lg shadow-cyan-500/20"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download Excel Report (.xlsx)</span>
-              </button>
-
-              <button
-                onClick={handleReanalyze}
-                className="w-full px-5 py-3.5 rounded-2xl bg-slate-800 border border-white/10 text-slate-200 hover:bg-slate-700 font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <RotateCw className="w-4 h-4" />
-                <span>Re-Analyze with New Requirements</span>
-              </button>
-
-              <Link
-                href={`/candidates?session_id=${currentSessionId}`}
-                className="block text-xs font-black text-cyan-400 hover:underline pt-2"
-              >
-                View Candidates & Match Breakdown →
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+      <FloatingDock />
     </div>
   );
 }
