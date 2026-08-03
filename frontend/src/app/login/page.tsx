@@ -43,7 +43,6 @@ export default function LoginPage() {
           </Link>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white font-heading">Recruiter Sign In</h1>
-            <p className="text-xs font-semibold text-slate-400 mt-1">High-Security JWT Authentication & PostgreSQL Database</p>
           </div>
         </div>
 
