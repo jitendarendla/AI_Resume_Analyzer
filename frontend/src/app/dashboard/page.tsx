@@ -86,7 +86,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#090D16] text-slate-100 font-sans pb-32" suppressHydrationWarning>
       <Navbar />
 
-      <main className="pt-24 p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
+      <main className="pt-20 sm:pt-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
         {/* Studio Hero Banner */}
         <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-slate-900 via-blue-950/60 to-slate-950 border border-white/10 shadow-2xl relative overflow-hidden backdrop-blur-2xl">
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>

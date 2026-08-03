@@ -63,7 +63,7 @@ export default function ChangePasswordPage() {
     <div className="min-h-screen bg-[#090D16] text-slate-100 font-sans pb-32" suppressHydrationWarning>
       <Navbar />
 
-      <main className="pt-24 p-4 sm:p-6 lg:p-8 max-w-xl mx-auto space-y-6">
+      <main className="pt-20 sm:pt-24 max-w-xl mx-auto px-4 sm:px-6 space-y-6">
         {/* Page Header */}
         <div className="flex items-center gap-4 p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-slate-900 via-blue-950/80 to-slate-900 border border-white/10 shadow-2xl relative overflow-hidden backdrop-blur-xl">
           <div className="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 shrink-0 shadow-lg">

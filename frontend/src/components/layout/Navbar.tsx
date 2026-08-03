@@ -3,14 +3,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 
 export default function Navbar() {
-  const { user } = useAuth();
-
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 h-16 bg-[#090D16]/80 backdrop-blur-2xl border-b border-white/10 flex items-center px-4 sm:px-8">
-      <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-40 h-16 bg-[#090D16]/80 backdrop-blur-2xl border-b border-white/10 flex items-center">
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         {/* Brand Emblem */}
         <Link href="/dashboard" className="flex items-center gap-3 group cursor-pointer">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 p-0.5 flex items-center justify-center shrink-0 shadow-lg shadow-cyan-500/20 border border-white/20">
