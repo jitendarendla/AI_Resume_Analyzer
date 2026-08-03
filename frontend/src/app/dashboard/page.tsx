@@ -15,33 +15,32 @@ import {
   ArrowUpRight,
   UploadCloud,
   CheckCircle2,
+  Calendar,
   BarChart3,
   Filter,
   PieChart as PieChartIcon
 } from 'lucide-react';
-import Link from 'next/link';
 import {
+  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer,
   PieChart,
   Pie,
   Cell
 } from 'recharts';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
-
-  // Filters state
-  const [selectedFolder, setSelectedFolder] = useState<string>('All Folders');
+  const [barAnalysisMode, setBarAnalysisMode] = useState<'date' | 'week'>('date');
   const [selectedExpFolder, setSelectedExpFolder] = useState<string>('All Folders');
-  const [barAnalysisMode, setBarAnalysisMode] = useState<'folder' | 'week'>('folder');
 
   const { token } = useAuth();
 
@@ -51,71 +50,56 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (token) {
-      api.get('/api/reports/stats')
-        .then((res) => setStats(res.data))
-        .catch((err) => console.error('Failed to fetch dashboard stats:', err));
+      fetchStats();
     }
   }, [token]);
 
-  const COLORS = ['#0047AB', '#0F2C59', '#7A3E65', '#2563EB', '#3B82F6', '#8B5CF6'];
-
-  // Prepare Skill Distribution based on selected folder filter
-  const getSkillsData = () => {
-    if (!stats || !stats.skills_by_folder) return [];
-    const source = stats.skills_by_folder[selectedFolder] || stats.skills_distribution || {};
-    return Object.entries(source).map(([name, count]) => ({
-      name,
-      count
-    })).sort((a: any, b: any) => b.count - a.count);
+  const fetchStats = async () => {
+    try {
+      const res = await api.get('/api/reports/stats');
+      setStats(res.data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Prepare Experience Distribution based on selected folder filter
-  const getExpData = () => {
-    if (!stats || !stats.experience_by_folder) return [];
-    const source = stats.experience_by_folder[selectedExpFolder] || stats.experience_distribution || {};
-    return Object.entries(source).map(([name, value]) => ({
-      name,
-      value
-    }));
-  };
+  const expByFolderDict = stats?.exp_by_folder || {};
+  const folderNamesList = Object.keys(expByFolderDict);
 
-  // Available folders for filter select
-  const folderNamesList = stats?.folder_names || [];
+  const activeExpObj = expByFolderDict[selectedExpFolder] || stats?.experience_distribution || {};
 
-  // Bar Chart Data (Folder-wise vs Week-wise)
-  const barChartData = barAnalysisMode === 'week' 
-    ? (stats?.weekly_trends || []) 
-    : getSkillsData().slice(0, 7).map(item => ({ label: item.name, count: item.count }));
+  const expData = Object.keys(activeExpObj).length > 0
+    ? Object.entries(activeExpObj).map(([name, value]) => ({ name, value: Number(value) || 0 }))
+    : [];
 
-  const expData = getExpData();
+  const barChartData = barAnalysisMode === 'date'
+    ? (stats?.date_wise_trends || [])
+    : (stats?.week_wise_trends || []);
+
+  const COLORS = ['#0F2C59', '#0047AB', '#7FA9D1', '#10B981'];
 
   return (
     <div className="min-h-screen bg-[#F8F5F1] text-[#2B241F] flex font-sans" suppressHydrationWarning>
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-
       <div className={`flex-1 transition-all duration-300 ml-0 ${collapsed ? 'md:ml-20' : 'md:ml-20 lg:ml-64'}`}>
         <Navbar collapsed={collapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
         <main className="pt-20 sm:pt-24 lg:pt-28 p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
-          {/* Welcome Banner */}
-          <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[#0F2C59] via-[#0047AB] to-[#2563EB] text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-            <div className="space-y-2 relative z-10">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-bold text-blue-200 border border-white/15">
-                <Sparkles className="w-3.5 h-3.5 text-blue-200" />
-                <span>AI Talent Dashboard</span>
-              </span>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight">
-                Recruiter Analytics Hub
-              </h1>
-              <p className="text-xs sm:text-sm text-blue-100 font-medium max-w-xl">
-                Real-world synchronized processing, candidate matching, and PDF/DOCX resume evaluation logs.
-              </p>
+          {/* Header banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-8 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm relative overflow-hidden">
+            <div className="relative z-10 space-y-1">
+              <div className="flex items-center gap-2 text-[#0047AB] font-black text-xs tracking-wider uppercase">
+                <Sparkles className="w-4 h-4" /> AI Resume Analyzer
+              </div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#2B241F] tracking-tight">Recruiter Dashboard</h1>
+              <p className="text-xs font-semibold text-[#60534A]">Real-time candidate evaluation & Job Description matching insights</p>
             </div>
-
-            <div className="flex flex-wrap items-center gap-3 relative z-10">
+            <div className="flex items-center gap-3 relative z-10 self-start sm:self-auto">
               <Link
                 href="/upload"
-                className="px-5 py-3 rounded-2xl bg-white text-[#0F2C59] hover:bg-[#FAF6F1] font-black text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                className="sleek-btn-primary text-xs"
               >
                 <UploadCloud className="w-4 h-4" />
                 <span>Upload Resumes</span>
@@ -123,98 +107,77 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Metric Stats Cards */}
+          {/* KPI Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <StatCard
-              title="Processed Resumes"
-              value={stats ? stats.total_resumes : '...'}
-              trend="+12% this week"
+              title="Total Resumes Analyzed"
+              value={stats?.total_resumes ?? 0}
+              subtitle="Uploaded candidate records"
               icon={Users}
               color="indigo"
             />
-
             <StatCard
-              title="Upload Batches"
-              value={stats ? stats.total_reports : '...'}
-              trend="+5 new batches"
+              title="Total Generated Reports"
+              value={stats?.total_reports ?? 0}
+              subtitle="Completed JD match sessions"
               icon={FileSpreadsheet}
               color="purple"
             />
-
             <StatCard
-              title="Excel Downloads"
-              value={stats ? stats.total_downloads : '...'}
-              trend="Synchronized"
+              title="Total Excel Downloads"
+              value={stats?.total_downloads ?? 0}
+              subtitle="Exported candidate reports"
               icon={Download}
               color="emerald"
             />
-
             <StatCard
-              title="AI System Status"
-              value={stats ? stats.ai_processing_status : 'Active'}
-              trend="100% Operational"
+              title="AI Engine Status"
+              value={stats?.ai_processing_status || "Operational"}
+              subtitle="High concurrency background workers"
               icon={CheckCircle2}
               color="cyan"
             />
           </div>
 
-          {/* Analytics Charts Grid */}
+          {/* Analytics Charts Row: Date/Week Bar Graph & Folder-Wise Experience Pie Chart */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Folder-Wise / Week-Wise Skill & Batch Distribution Bar Chart */}
-            <div className="lg:col-span-2 p-4 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Bar Graph: Date-Wise and Week-Wise Toggle */}
+            <div className="lg:col-span-2 p-4 sm:p-7 rounded-3xl bg-white border border-[#E8E2D9] shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
-                  <h3 className="text-base sm:text-lg font-black text-[#2B241F]">
-                    {barAnalysisMode === 'week' ? 'Weekly Processing Trends' : 'Skill Distribution'}
-                  </h3>
-                  <p className="text-xs font-semibold text-[#60534A]">
-                    {barAnalysisMode === 'week' ? 'Real-world UTC weekly resume processing count' : 'Top candidate skills extracted across batches'}
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-[#0F2C59]" />
+                    <h3 className="text-base sm:text-lg font-black text-[#2B241F]">
+                      {barAnalysisMode === 'date' ? 'Date-Wise Upload Volume' : 'Week-Wise Analysis'}
+                    </h3>
+                  </div>
+                  <p className="text-xs font-semibold text-[#60534A] mt-0.5">
+                    {barAnalysisMode === 'date' ? 'Daily candidate uploads over the last 10 days' : 'Weekly volume breakdown across 4 weeks'}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {/* Folder Filter Selector (Active when folder mode selected) */}
-                  {barAnalysisMode === 'folder' && folderNamesList.length > 0 && (
-                    <div className="flex items-center gap-1 bg-[#F5EFEB] border border-[#E2D7CB] rounded-xl px-2.5 py-1">
-                      <Filter className="w-3 h-3 text-[#60534A]" />
-                      <select
-                        value={selectedFolder}
-                        onChange={(e) => setSelectedFolder(e.target.value)}
-                        className="bg-transparent text-[11px] font-black text-[#2B241F] focus:outline-none cursor-pointer max-w-[130px] truncate"
-                      >
-                        {folderNamesList.map((folder: string, idx: number) => (
-                          <option key={idx} value={folder}>
-                            {folder}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Mode Toggle: Folder-wise vs Week-wise */}
-                  <div className="flex p-1 rounded-xl bg-[#F5EFEB] border border-[#E2D7CB] text-xs font-bold" suppressHydrationWarning>
-                    <button
-                      onClick={() => setBarAnalysisMode('folder')}
-                      suppressHydrationWarning
-                      className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
-                        barAnalysisMode === 'folder' ? 'bg-[#0F2C59] text-white shadow-md font-black' : 'text-[#60534A] hover:text-[#2B241F]'
-                      }`}
-                    >
-                      <BarChart3 className="w-3.5 h-3.5" />
-                      <span>Folder-Wise</span>
-                    </button>
-
-                    <button
-                      onClick={() => setBarAnalysisMode('week')}
-                      suppressHydrationWarning
-                      className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
-                        barAnalysisMode === 'week' ? 'bg-[#0F2C59] text-white shadow-md font-black' : 'text-[#60534A] hover:text-[#2B241F]'
-                      }`}
-                    >
-                      <BarChart3 className="w-3.5 h-3.5" />
-                      <span>Week-Wise</span>
-                    </button>
-                  </div>
+                {/* Date-wise vs Week-wise Toggle Buttons */}
+                <div className="flex p-1 rounded-2xl bg-[#F5EFEB] border border-[#E2D7CB] text-xs font-bold shrink-0 self-start sm:self-auto" suppressHydrationWarning>
+                  <button
+                    onClick={() => setBarAnalysisMode('date')}
+                    suppressHydrationWarning
+                    className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
+                      barAnalysisMode === 'date' ? 'bg-[#0F2C59] text-white shadow-md font-black' : 'text-[#60534A] hover:text-[#2B241F]'
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Date-Wise</span>
+                  </button>
+                  <button
+                    onClick={() => setBarAnalysisMode('week')}
+                    suppressHydrationWarning
+                    className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
+                      barAnalysisMode === 'week' ? 'bg-[#0F2C59] text-white shadow-md font-black' : 'text-[#60534A] hover:text-[#2B241F]'
+                    }`}
+                  >
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    <span>Week-Wise</span>
+                  </button>
                 </div>
               </div>
 
@@ -252,7 +215,7 @@ export default function DashboardPage() {
                         onChange={(e) => setSelectedExpFolder(e.target.value)}
                         className="bg-transparent text-[11px] font-black text-[#2B241F] focus:outline-none cursor-pointer max-w-[120px] truncate"
                       >
-                        {folderNamesList.map((folder: string, idx: number) => (
+                        {folderNamesList.map((folder, idx) => (
                           <option key={idx} value={folder}>
                             {folder}
                           </option>
@@ -287,6 +250,16 @@ export default function DashboardPage() {
                     <div className="text-xs font-bold text-[#8C7E72] italic">No candidate experience data available</div>
                   )}
                 </div>
+              </div>
+
+              {/* Pie Chart Legend */}
+              <div className="grid grid-cols-2 gap-2 pt-4 border-t border-[#E8E2D9]">
+                {expData.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
+                    <span className="text-[11px] font-bold text-[#60534A] truncate">{item.name}: <span className="text-[#2B241F] font-black">{item.value}</span></span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
