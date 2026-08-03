@@ -13,7 +13,9 @@ import {
   ArrowUpDown,
   Eye,
   FolderKanban,
-  ListFilter
+  ListFilter,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 export default function CandidatesPage() {
@@ -26,7 +28,7 @@ export default function CandidatesPage() {
   const [selectedFolder, setSelectedFolder] = useState('All Folders');
   const [availableFolders, setAvailableFolders] = useState<string[]>([]);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(10); // Default to 10 candidates per page!
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
@@ -71,7 +73,7 @@ export default function CandidatesPage() {
 
       const response = await api.get('/api/analysis/candidates', { params });
       setCandidates(response.data.candidates || []);
-      setTotalPages(response.data.total_pages || 1);
+      setTotalPages(response.data.total_pages || Math.ceil((response.data.total_count || response.data.total || 1) / pageSize) || 1);
       setTotalCount(response.data.total_count || response.data.total || 0);
     } catch (err) {
       console.error('Failed to fetch candidates', err);
@@ -91,13 +93,13 @@ export default function CandidatesPage() {
           
           <div className="relative z-10">
             <div className="flex items-center gap-2 text-cyan-400 font-extrabold text-xs tracking-wider uppercase mb-1">
-              <Users className="w-4 h-4 text-cyan-400 animate-pulse" /> Candidate Directory
+              <Users className="w-4 h-4 text-cyan-400 animate-pulse" /> Folder-Wise Candidate Directory
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-heading">
               Candidate Dossiers & Ranking ({totalCount} Total)
             </h1>
             <p className="text-xs sm:text-sm font-semibold text-slate-400 mt-1">
-              Search, filter folder-wise, and inspect parsed candidate resumes
+              Showing {candidates.length} candidates per page (Page {page} of {totalPages})
             </p>
           </div>
         </div>
@@ -121,8 +123,8 @@ export default function CandidatesPage() {
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
             {/* Folder Selector Dropdown */}
-            <div className="flex items-center gap-1.5 bg-slate-900/80 border border-white/10 rounded-xl px-3 py-2 flex-1 sm:flex-initial">
-              <FolderKanban className="w-4 h-4 text-purple-400 shrink-0" />
+            <div className="flex items-center gap-1.5 bg-slate-900/80 border border-cyan-500/30 rounded-xl px-3 py-2 flex-1 sm:flex-initial shadow-md shadow-cyan-500/5">
+              <FolderKanban className="w-4 h-4 text-cyan-400 shrink-0" />
               <span className="text-xs text-slate-400 font-bold hidden sm:inline">Folder:</span>
               <select
                 value={selectedFolder}
@@ -130,7 +132,7 @@ export default function CandidatesPage() {
                   setSelectedFolder(e.target.value);
                   setPage(1);
                 }}
-                className="bg-transparent text-xs text-slate-200 font-black focus:outline-none cursor-pointer w-full sm:max-w-[150px] truncate"
+                className="bg-transparent text-xs text-cyan-300 font-black focus:outline-none cursor-pointer w-full sm:max-w-[160px] truncate"
               >
                 {availableFolders.map((folder: string, idx: number) => (
                   <option key={idx} value={folder} className="bg-slate-900 text-white">
@@ -181,7 +183,7 @@ export default function CandidatesPage() {
             {/* Show Per Page Selector */}
             <div className="flex items-center gap-1.5 bg-slate-900/80 border border-white/10 rounded-xl px-3 py-2">
               <ListFilter className="w-4 h-4 text-amber-400 shrink-0" />
-              <span className="text-xs text-slate-400 font-bold hidden sm:inline">Rows:</span>
+              <span className="text-xs text-slate-400 font-bold hidden sm:inline">Per Page:</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
@@ -191,10 +193,9 @@ export default function CandidatesPage() {
                 className="bg-transparent text-xs text-slate-200 font-black focus:outline-none cursor-pointer"
               >
                 <option value={10} className="bg-slate-900 text-white">10</option>
-                <option value={25} className="bg-slate-900 text-white">25</option>
+                <option value={20} className="bg-slate-900 text-white">20</option>
                 <option value={50} className="bg-slate-900 text-white">50</option>
                 <option value={100} className="bg-slate-900 text-white">100</option>
-                <option value={5000} className="bg-slate-900 text-white">Show All</option>
               </select>
             </div>
           </div>
@@ -239,7 +240,7 @@ export default function CandidatesPage() {
 
                       <td className="p-4 font-bold text-purple-300">
                         <span className="px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-[11px]">
-                          {candidate.folder_name || 'General Batch'}
+                          {candidate.folder_name || selectedFolder || 'General Batch'}
                         </span>
                       </td>
 
@@ -289,28 +290,57 @@ export default function CandidatesPage() {
             </table>
           </div>
 
-          {/* Pagination Bar */}
-          {totalPages > 1 && (
-            <div className="p-4 bg-slate-900/80 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold text-slate-400">
-              <span>Showing Page {page} of {totalPages} ({totalCount} Total Candidates)</span>
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 border border-white/10 text-slate-200 hover:bg-slate-700 disabled:opacity-50 font-black cursor-pointer"
-                >
-                  Previous
-                </button>
-                <button
-                  disabled={page === totalPages}
-                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 border border-white/10 text-slate-200 hover:bg-slate-700 disabled:opacity-50 font-black cursor-pointer"
-                >
-                  Next
-                </button>
-              </div>
+          {/* Enhanced Pagination Controls Bar */}
+          <div className="p-4 bg-slate-900/90 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-bold text-slate-300">
+            <div>
+              Showing <span className="text-cyan-400 font-black font-mono">{candidates.length > 0 ? (page - 1) * pageSize + 1 : 0}</span> to <span className="text-cyan-400 font-black font-mono">{Math.min(page * pageSize, totalCount)}</span> of <span className="text-white font-black font-mono">{totalCount}</span> candidates
             </div>
-          )}
+
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 border border-white/10 text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-black transition-all flex items-center gap-1 cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Previous</span>
+              </button>
+
+              {/* Page Number Buttons */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                  let pNum = i + 1;
+                  if (totalPages > 7 && page > 4) {
+                    pNum = page - 3 + i;
+                    if (pNum > totalPages) pNum = totalPages - (6 - i);
+                  }
+                  if (pNum <= 0) return null;
+                  return (
+                    <button
+                      key={pNum}
+                      onClick={() => setPage(pNum)}
+                      className={`w-8 h-8 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        page === pNum
+                          ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20'
+                          : 'bg-slate-800 border border-white/10 text-slate-400 hover:text-white hover:bg-slate-700'
+                      }`}
+                    >
+                      {pNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 border border-white/10 text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-black transition-all flex items-center gap-1 cursor-pointer"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
       </main>
 
