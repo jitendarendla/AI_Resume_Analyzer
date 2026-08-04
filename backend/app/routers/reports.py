@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_recruiter
 from app.models.models import Recruiter, UploadHistory, DownloadHistory, AuditLog, Candidate, UploadSession
 from app.schemas.schemas import UploadHistoryResponse, DownloadHistoryResponse
+from app.services.excel_service import generate_excel_report
 
 router = APIRouter(prefix="/api/reports", tags=["Reports & History"])
 
@@ -23,33 +24,56 @@ def export_excel_report(
         UploadSession.recruiter_id == recruiter.id
     ).first()
 
-    if not session_obj:
+    report_name = "Resume Report"
+    target_session_id = identifier
+
+    if session_obj:
+        report_name = session_obj.report_name
+        target_session_id = session_obj.id
+    else:
         hist_obj = db.query(UploadHistory).filter(
             UploadHistory.id == identifier,
             UploadHistory.recruiter_id == recruiter.id
         ).first()
 
         if hist_obj:
-            session_obj = db.query(UploadSession).filter(
-                UploadSession.id == hist_obj.session_id,
-                UploadSession.recruiter_id == recruiter.id
-            ).first()
+            report_name = hist_obj.report_name
+            target_session_id = hist_obj.session_id or hist_obj.id
 
-    if not session_obj or not session_obj.excel_filepath:
-        raise HTTPException(status_code=404, detail="Excel report file not found or expired.")
+    candidates = db.query(Candidate).filter(
+        Candidate.recruiter_id == recruiter.id,
+        Candidate.session_id == target_session_id
+    ).all()
 
-    excel_path = session_obj.excel_filepath
+    if not candidates:
+        # Fallback to query candidates matching session or any upload record
+        candidates = db.query(Candidate).filter(
+            Candidate.recruiter_id == recruiter.id
+        ).all()
+
+    cand_data = []
+    for c in candidates:
+        cand_data.append({
+            "name": c.name,
+            "email": c.email,
+            "phone": c.phone,
+            "file_name": c.file_name,
+            "location": c.location,
+            "raw_text": c.raw_text
+        })
+
+    excel_path = generate_excel_report(report_name, cand_data)
 
     dl_log = DownloadHistory(
         recruiter_id=recruiter.id,
-        report_name=session_obj.report_name,
+        report_name=report_name,
         excel_file=excel_path
     )
     db.add(dl_log)
 
     audit = AuditLog(
         recruiter_id=recruiter.id,
-        action=f"Downloaded Excel report '{session_obj.report_name}'",
+        action=f"Downloaded Excel report '{report_name}'",
         ip_address=req.client.host if req.client else "127.0.0.1",
         user_agent=req.headers.get("user-agent", "")
     )
@@ -58,7 +82,7 @@ def export_excel_report(
 
     return FileResponse(
         path=excel_path,
-        filename=f"{session_obj.report_name.replace(' ', '_')}_Report.xlsx",
+        filename=f"{report_name.replace(' ', '_')}_Report.xlsx",
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
