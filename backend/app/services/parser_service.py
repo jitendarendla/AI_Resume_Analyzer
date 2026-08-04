@@ -4,6 +4,7 @@ import json
 import urllib.request
 import urllib.parse
 import threading
+import gc
 from datetime import datetime
 import fitz  # PyMuPDF
 import docx
@@ -111,6 +112,7 @@ def extract_text_from_file(file_path: str) -> str:
             for page in doc[:5]:  # Read first 5 pages max for ultra fast throughput
                 text += page.get_text() + "\n"
             doc.close()
+            del doc
         elif ext == "docx":
             doc = docx.Document(file_path)
             for paragraph in doc.paragraphs:
@@ -121,11 +123,14 @@ def extract_text_from_file(file_path: str) -> str:
                     for cell in row.cells:
                         if cell.text:
                             text += cell.text + "\n"
+            del doc
         elif ext in ["txt", "doc"]:
             with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                 text = f.read()
     except Exception as e:
         print(f"[WARNING] Error reading {file_path}: {e}")
+    finally:
+        gc.collect()
     return text.strip()
 
 def clean_candidate_name(raw_name: str, filename: str = "", email: str = "", raw_text: str = "") -> str:

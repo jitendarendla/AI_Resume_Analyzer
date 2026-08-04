@@ -1,5 +1,6 @@
 import os
 import shutil
+import gc
 import concurrent.futures
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks, Request
@@ -18,7 +19,8 @@ from app.services.matching_service import match_candidate_to_jd
 router = APIRouter(prefix="/api/upload", tags=["Resume Upload"])
 limiter = Limiter(key_func=get_remote_address)
 
-thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=16)
+# Max 4 concurrent worker threads to prevent RAM memory spikes on 512MB RAM server instances
+thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
 def process_single_resume(session_id: str, recruiter_id: str, file_path: str, filename: str, job_description: str):
     db: Session = SessionLocal()
@@ -77,6 +79,7 @@ def process_single_resume(session_id: str, recruiter_id: str, file_path: str, fi
             print(f"[ERROR] Increment status failed for session {session_id}: {inc_err}")
         finally:
             db.close()
+            gc.collect()
 
 def run_bulk_processing(session_id: str, recruiter_id: str, file_tuples: list, job_description: str):
     futures = [
@@ -98,6 +101,7 @@ def run_bulk_processing(session_id: str, recruiter_id: str, file_tuples: list, j
         print(f"[ERROR] Finalizing session {session_id} failed: {e}")
     finally:
         db.close()
+        gc.collect()
 
 def run_reanalyze_processing(session_id: str, job_description: str):
     db: Session = SessionLocal()
