@@ -18,8 +18,11 @@ from app.schemas.schemas import (
     ForgotPasswordReset
 )
 from app.services.email_service import send_resend_otp_email
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+limiter = Limiter(key_func=get_remote_address)
 
 class ProfileUpdate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
@@ -44,7 +47,8 @@ class ChangePasswordRequest(BaseModel):
     confirm_password: str = Field(..., min_length=6)
 
 @router.post("/register", response_model=dict, status_code=status.HTTP_201_CREATED)
-def register_recruiter(data: RecruiterRegister, req: Request, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register_recruiter(req: Request, data: RecruiterRegister, db: Session = Depends(get_db)):
     existing = db.query(Recruiter).filter(Recruiter.email == data.email).first()
     if existing:
         raise HTTPException(
@@ -79,7 +83,8 @@ def register_recruiter(data: RecruiterRegister, req: Request, db: Session = Depe
     return {"message": "Recruiter account created successfully. Please login."}
 
 @router.post("/login", response_model=Token)
-def login_recruiter(data: RecruiterLogin, req: Request, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login_recruiter(req: Request, data: RecruiterLogin, db: Session = Depends(get_db)):
     recruiter = db.query(Recruiter).filter(Recruiter.email == data.email).first()
     if not recruiter or not verify_password(data.password, recruiter.password_hash):
         raise HTTPException(
@@ -111,7 +116,8 @@ def login_recruiter(data: RecruiterLogin, req: Request, db: Session = Depends(ge
     }
 
 @router.post("/send-otp")
-def send_otp(body: SendOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def send_otp(req: Request, body: SendOTPRequest, db: Session = Depends(get_db)):
     recruiter = db.query(Recruiter).filter(Recruiter.email == body.email).first()
     if not recruiter:
         raise HTTPException(
@@ -143,7 +149,8 @@ def send_otp(body: SendOTPRequest, db: Session = Depends(get_db)):
     }
 
 @router.post("/verify-otp")
-def verify_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def verify_otp(req: Request, body: VerifyOTPRequest, db: Session = Depends(get_db)):
     otp_record = db.query(OTP).filter(
         OTP.email == body.email,
         OTP.otp_code == body.otp_code,
@@ -170,7 +177,9 @@ def verify_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
     return {"message": "OTP verification successful."}
 
 @router.post("/change-password")
+@limiter.limit("5/minute")
 def change_password_simple(
+    req: Request,
     body: ChangePasswordRequest,
     recruiter: Recruiter = Depends(get_current_recruiter),
     db: Session = Depends(get_db)
@@ -199,7 +208,8 @@ def change_password_simple(
     return {"message": "Password changed successfully."}
 
 @router.post("/reset-password-with-otp")
-def reset_password_with_otp(body: ResetPasswordOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def reset_password_with_otp(req: Request, body: ResetPasswordOTPRequest, db: Session = Depends(get_db)):
     otp_record = db.query(OTP).filter(
         OTP.email == body.email,
         OTP.otp_code == body.otp_code,
