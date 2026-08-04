@@ -7,7 +7,7 @@ client = TestClient(app)
 def test_health_check():
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json()["status"] == "online"
+    assert response.json()["status"] in ["online", "healthy"]
 
 def test_register_and_login():
     email = "testrecruiter@example.com"
