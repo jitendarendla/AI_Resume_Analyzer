@@ -48,7 +48,7 @@ class ChangePasswordRequest(BaseModel):
 
 @router.post("/register", response_model=dict, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
-def register_recruiter(req: Request, data: RecruiterRegister, db: Session = Depends(get_db)):
+def register_recruiter(request: Request, data: RecruiterRegister, db: Session = Depends(get_db)):
     existing = db.query(Recruiter).filter(Recruiter.email == data.email).first()
     if existing:
         raise HTTPException(
@@ -74,8 +74,8 @@ def register_recruiter(req: Request, data: RecruiterRegister, db: Session = Depe
     audit = AuditLog(
         recruiter_id=new_recruiter.id,
         action="Recruiter Account Registered",
-        ip_address=req.client.host if req.client else "127.0.0.1",
-        user_agent=req.headers.get("user-agent", "")
+        ip_address=request.client.host if request.client else "127.0.0.1",
+        user_agent=request.headers.get("user-agent", "")
     )
     db.add(audit)
     db.commit()
@@ -84,7 +84,7 @@ def register_recruiter(req: Request, data: RecruiterRegister, db: Session = Depe
 
 @router.post("/login", response_model=Token)
 @limiter.limit("10/minute")
-def login_recruiter(req: Request, data: RecruiterLogin, db: Session = Depends(get_db)):
+def login_recruiter(request: Request, data: RecruiterLogin, db: Session = Depends(get_db)):
     recruiter = db.query(Recruiter).filter(Recruiter.email == data.email).first()
     if not recruiter or not verify_password(data.password, recruiter.password_hash):
         raise HTTPException(
@@ -98,8 +98,8 @@ def login_recruiter(req: Request, data: RecruiterLogin, db: Session = Depends(ge
     audit = AuditLog(
         recruiter_id=recruiter.id,
         action="Recruiter Logged In",
-        ip_address=req.client.host if req.client else "127.0.0.1",
-        user_agent=req.headers.get("user-agent", "")
+        ip_address=request.client.host if request.client else "127.0.0.1",
+        user_agent=request.headers.get("user-agent", "")
     )
     db.add(audit)
     db.commit()
@@ -117,7 +117,7 @@ def login_recruiter(req: Request, data: RecruiterLogin, db: Session = Depends(ge
 
 @router.post("/send-otp")
 @limiter.limit("3/minute")
-def send_otp(req: Request, body: SendOTPRequest, db: Session = Depends(get_db)):
+def send_otp(request: Request, body: SendOTPRequest, db: Session = Depends(get_db)):
     recruiter = db.query(Recruiter).filter(Recruiter.email == body.email).first()
     if not recruiter:
         raise HTTPException(
@@ -150,7 +150,7 @@ def send_otp(req: Request, body: SendOTPRequest, db: Session = Depends(get_db)):
 
 @router.post("/verify-otp")
 @limiter.limit("5/minute")
-def verify_otp(req: Request, body: VerifyOTPRequest, db: Session = Depends(get_db)):
+def verify_otp(request: Request, body: VerifyOTPRequest, db: Session = Depends(get_db)):
     otp_record = db.query(OTP).filter(
         OTP.email == body.email,
         OTP.otp_code == body.otp_code,
@@ -179,7 +179,7 @@ def verify_otp(req: Request, body: VerifyOTPRequest, db: Session = Depends(get_d
 @router.post("/change-password")
 @limiter.limit("5/minute")
 def change_password_simple(
-    req: Request,
+    request: Request,
     body: ChangePasswordRequest,
     recruiter: Recruiter = Depends(get_current_recruiter),
     db: Session = Depends(get_db)
@@ -209,7 +209,7 @@ def change_password_simple(
 
 @router.post("/reset-password-with-otp")
 @limiter.limit("5/minute")
-def reset_password_with_otp(req: Request, body: ResetPasswordOTPRequest, db: Session = Depends(get_db)):
+def reset_password_with_otp(request: Request, body: ResetPasswordOTPRequest, db: Session = Depends(get_db)):
     otp_record = db.query(OTP).filter(
         OTP.email == body.email,
         OTP.otp_code == body.otp_code,
