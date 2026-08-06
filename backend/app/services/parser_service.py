@@ -553,6 +553,43 @@ def parse_resume_with_llm(text: str) -> dict:
 
     return None
 
+def extract_all_skills_comprehensively(text: str) -> list:
+    if not text:
+        return []
+
+    found = set()
+
+    # 1. Match against expanded SKILLS_LEXICON
+    text_lower = text.lower()
+    for skill, pattern in SKILL_REGEX_MAP.items():
+        if pattern.search(text_lower):
+            cased = TECH_CASING.get(skill, skill.title())
+            found.add(cased)
+
+    # 2. Extract skills from Technical Skills / Solution Stack / Core Competencies / Categories
+    lines = text.split('\n')
+    in_skills_sec = False
+    for line in lines:
+        l_lower = line.lower().strip()
+        if any(hdr in l_lower for hdr in ["technical skills", "solution stack", "technical stack", "skills & tools", "core competencies", "technologies", "programming"]):
+            in_skills_sec = True
+            continue
+        if in_skills_sec:
+            if any(hdr in l_lower for hdr in ["experience", "employment", "education", "projects", "certifications", "summary"]):
+                in_skills_sec = False
+                continue
+            if ":" in line or ";" in line:
+                after_colon = line.split(":", 1)[-1] if ":" in line else line
+                items = [x.strip() for x in re.split(r'[,;/|•·\t]+', after_colon) if x.strip()]
+                for item in items:
+                    clean_item = re.sub(r'\s*\([^)]*\)', '', item).strip()
+                    clean_item = re.sub(r'^(?:primary|secondary|tools|stack|databases|languages|cloud)\s*[:\-]?\s*', '', clean_item, flags=re.IGNORECASE).strip()
+                    if clean_item and 2 <= len(clean_item) <= 30 and not any(w in clean_item.lower() for w in ["developed", "architected", "managed", "worked"]):
+                        cased_item = TECH_CASING.get(clean_item.lower(), clean_item)
+                        found.add(cased_item)
+
+    return sorted(list(found))
+
 def extract_rule_based_details(text: str, filename: str = "") -> dict:
     """Pre-compiled Regex Engine for Sub-Millisecond 100% Extraction Coverage."""
     lines = [line.strip() for line in text.split("\n") if line.strip()]
@@ -573,35 +610,14 @@ def extract_rule_based_details(text: str, filename: str = "") -> dict:
     github = github_match.group(0) if github_match else ""
 
     # 4. Name
-    candidate_name = ""
-    for line in lines[:8]:
-        if "@" in line or "http" in line or "www." in line or re.search(r'\d{5,}', line):
-            continue
-        line_lower = line.lower()
-        if any(pat in line_lower for pat in REJECT_NAME_HEADER_PATTERNS):
-            continue
-        if any(h in line_lower for h in ["resume", "curriculum vitae", "cv", "profile", "contact", "summary", "experience", "education", "skills"]):
-            continue
-        clean_line = re.sub(r'[^a-zA-Z\s.-]', '', line).strip()
-        words = [w.lower() for w in clean_line.split()]
-        if any(w in JOB_TITLE_KEYWORDS for w in words):
-            continue
-        if clean_line and 2 <= len(clean_line.split()) <= 4 and len(clean_line) < 40:
-            candidate_name = clean_line.title()
-            break
-
-    candidate_name = clean_candidate_name(candidate_name, filename, email, text)
+    candidate_name = clean_candidate_name("", filename, email, text)
 
     # 5. Skills
-    text_lower = text.lower()
-    found_skills = set()
-    for skill, pattern in SKILL_REGEX_MAP.items():
-        if pattern.search(text_lower):
-            cased = TECH_CASING.get(skill, skill.title())
-            found_skills.add(cased)
+    found_skills = extract_all_skills_comprehensively(text)
 
     # 6. Experience
     experience_years = 0.0
+    text_lower = text.lower()
     exp_matches = EXP_YEAR_REGEX.findall(text_lower)
     if exp_matches:
         try:
@@ -646,7 +662,7 @@ def extract_rule_based_details(text: str, filename: str = "") -> dict:
         "email": email,
         "phone": phone,
         "location": location,
-        "skills": sorted(list(found_skills)),
+        "skills": found_skills,
         "education": education_str,
         "experience_years": experience_years,
         "certifications": certifications,
@@ -674,16 +690,12 @@ def parse_resume_content(text: str, filename: str = "") -> dict:
         if not location and rule_res["location"]:
             location = rule_res["location"]
 
-        skills = list(dict.fromkeys((llm_res.get("skills") or []) + rule_res["skills"]))
+        comp_skills = extract_all_skills_comprehensively(text)
+        skills = list(dict.fromkeys((llm_res.get("skills") or []) + comp_skills + rule_res["skills"]))
         education = llm_res.get("education") or rule_res["education"]
         exp_yrs = float(llm_res.get("experience_years", 0.0) or 0.0)
         if exp_yrs == 0.0:
             exp_yrs = rule_res["experience_years"]
-
-        certifications = llm_res.get("certifications") or rule_res["certifications"]
-        linkedin = llm_res.get("linkedin") or rule_res["linkedin"]
-        github = llm_res.get("github") or rule_res["github"]
-        projects = llm_res.get("projects") or []
 
         return {
             "name": name,
@@ -693,10 +705,10 @@ def parse_resume_content(text: str, filename: str = "") -> dict:
             "skills": skills,
             "education": education,
             "experience_years": exp_yrs,
-            "certifications": certifications,
-            "linkedin": linkedin,
-            "github": github,
-            "projects": projects
+            "certifications": llm_res.get("certifications") or rule_res["certifications"],
+            "linkedin": llm_res.get("linkedin") or rule_res["linkedin"],
+            "github": llm_res.get("github") or rule_res["github"],
+            "projects": llm_res.get("projects") or rule_res["projects"]
         }
 
     return rule_res

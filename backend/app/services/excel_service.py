@@ -24,23 +24,21 @@ def generate_excel_report(report_name: str, candidate_data: list[dict]) -> str:
         raw_loc = item.get("location") or ""
         raw_text = item.get("raw_text") or ""
         skills_raw = item.get("skills") or []
-        
-        # Fallback to extract skills from raw text if skills list is empty
-        if not skills_raw and raw_text:
-            extracted = extract_rule_based_details(raw_text, resume_file)
-            skills_raw = extracted.get("skills") or []
-        
+        # Combine dictionary & section skills for 100% comprehensive extraction
+        comp_skills = extract_all_skills_comprehensively(raw_text) if raw_text else []
         if isinstance(skills_raw, list):
-            skills_str = ", ".join([str(s) for s in skills_raw if s])
-        elif isinstance(skills_raw, str):
-            skills_str = skills_raw
+            all_skills = list(dict.fromkeys(skills_raw + comp_skills))
+            skills_str = ", ".join([str(s) for s in all_skills if s])
+        elif isinstance(skills_raw, str) and skills_raw.strip():
+            all_skills = list(dict.fromkeys([skills_raw] + comp_skills))
+            skills_str = ", ".join([str(s) for s in all_skills if s])
         else:
-            skills_str = ""
+            skills_str = ", ".join([str(s) for s in comp_skills if s])
 
         # Apply strict cleaning on export
         clean_name = clean_candidate_name(raw_name, resume_file, email, raw_text)
         clean_loc = clean_candidate_location(raw_loc, raw_text)
-        tech_title = extract_technology_title(raw_text, resume_file, skills_raw if isinstance(skills_raw, list) else [])
+        tech_title = extract_technology_title(raw_text, resume_file, all_skills if 'all_skills' in locals() else [])
 
         rows.append({
             "S.No": idx,
