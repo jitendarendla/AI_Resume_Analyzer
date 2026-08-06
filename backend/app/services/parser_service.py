@@ -377,61 +377,63 @@ def normalize_llm_dict(raw: dict) -> dict:
     }
 
 def parse_resume_with_llm(text: str) -> dict:
-    """Ultra-Fast Non-Blocking Local / Cloud LLM Extractor."""
+    """Ollama Local LLM + Cloud Gemini/OpenAI Structured JSON Resume Parser."""
     prompt = f"""
-    Extract resume details into valid JSON:
+    Extract accurate candidate details from the resume text into a valid raw JSON object.
+    
+    JSON Schema:
     {{
-      "name": "Full Name",
-      "email": "Email Address",
-      "phone": "Phone Number",
-      "location": "City, State",
-      "skills": ["Skill1", "Skill2"],
-      "education": "Degree",
+      "name": "Candidate Full Personal Name (e.g. Ramesh Shetty, Lalita Gajbe). NEVER output section titles like 'Data Scientist', 'Technical Proficiency', 'AI ML Gen AI', or 'Solution Stack'. If no clear human name exists in top text lines, output ''",
+      "email": "Candidate Email Address",
+      "phone": "Candidate Phone Number",
+      "location": "City, State, Country (ONLY valid real physical geographic location like 'Dublin, California' or 'San Jose, CA'. NEVER output tech tools like 'Lakehouse', 'Delta', 'Amazon Bedrock')",
+      "technology_title": "Primary Role / Job Title (e.g. 'Senior Data Scientist', 'Gen AI Developer', 'Software Architect')",
+      "skills": ["Skill1", "Skill2", "Skill3"],
+      "education": "Degree Qualification",
       "experience_years": 5.0,
-      "certifications": ["Cert1"],
+      "certifications": [],
       "linkedin": "",
       "github": "",
       "projects": []
     }}
+    
     Resume Text:
-    {text[:3000]}
+    {text[:3500]}
     """
 
-    # Only run Ollama if explicitly enabled via environment variable
-    if os.getenv("ENABLE_OLLAMA") == "true":
+    # 1. Primary Extractor: Ollama Local LLM (qwen2.5:1.5b / qwen3:8b)
+    enable_ollama = os.getenv("ENABLE_OLLAMA", "true").lower() != "false"
+    if enable_ollama:
         ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
         ollama_model = os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b")
-        acquired = ollama_lock.acquire(blocking=False)
-        if acquired:
-            try:
-                url = f"{ollama_host}/api/generate"
-                payload = {
-                    "model": ollama_model,
-                    "prompt": prompt,
-                    "format": "json",
-                    "stream": False,
-                    "keep_alive": "30m",
-                    "options": {"temperature": 0.1}
-                }
-                req = urllib.request.Request(
-                    url,
-                    data=json.dumps(payload).encode("utf-8"),
-                    headers={"Content-Type": "application/json"}
-                )
-                with urllib.request.urlopen(req, timeout=1.0) as resp:
-                    res_data = json.loads(resp.read().decode("utf-8"))
-                    parsed_json = json.loads(res_data.get("response", "{}"))
-                    normalized = normalize_llm_dict(parsed_json)
-                    if normalized.get("name") or normalized.get("skills"):
-                        return normalized
-            except Exception:
-                pass
-            finally:
-                ollama_lock.release()
+        try:
+            url = f"{ollama_host}/api/generate"
+            payload = {
+                "model": ollama_model,
+                "prompt": prompt,
+                "format": "json",
+                "stream": False,
+                "keep_alive": "30m",
+                "options": {"temperature": 0.1}
+            }
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=3.5) as resp:
+                res_data = json.loads(resp.read().decode("utf-8"))
+                response_str = res_data.get("response", "{}")
+                parsed_json = json.loads(response_str)
+                normalized = normalize_llm_dict(parsed_json)
+                if normalized.get("name") or normalized.get("skills") or normalized.get("email"):
+                    print(f"[OLLAMA LLM] Successfully extracted resume details via {ollama_model}")
+                    return normalized
+        except Exception as ollama_err:
+            print(f"[OLLAMA LLM NOTICE] Local Ollama unavailable or timed out: {ollama_err}")
 
+    # 2. Cloud Fallback: Gemini 1.5 Flash
     gemini_key = os.getenv("GEMINI_API_KEY")
-    openai_key = os.getenv("OPENAI_API_KEY")
-
     if gemini_key:
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
@@ -444,13 +446,15 @@ def parse_resume_with_llm(text: str) -> dict:
                 data=json.dumps(payload).encode("utf-8"),
                 headers={"Content-Type": "application/json"}
             )
-            with urllib.request.urlopen(req, timeout=2.0) as resp:
+            with urllib.request.urlopen(req, timeout=3.0) as resp:
                 res_data = json.loads(resp.read().decode("utf-8"))
                 text_resp = res_data["candidates"][0]["content"]["parts"][0]["text"]
                 return normalize_llm_dict(json.loads(text_resp))
         except Exception:
             pass
 
+    # 3. Cloud Fallback: OpenAI GPT-4o-mini
+    openai_key = os.getenv("OPENAI_API_KEY")
     if openai_key:
         try:
             url = "https://api.openai.com/v1/chat/completions"
@@ -464,7 +468,7 @@ def parse_resume_with_llm(text: str) -> dict:
                 data=json.dumps(payload).encode("utf-8"),
                 headers={"Content-Type": "application/json", "Authorization": f"Bearer {openai_key}"}
             )
-            with urllib.request.urlopen(req, timeout=2.0) as resp:
+            with urllib.request.urlopen(req, timeout=3.0) as resp:
                 res_data = json.loads(resp.read().decode("utf-8"))
                 text_resp = res_data["choices"][0]["message"]["content"]
                 return normalize_llm_dict(json.loads(text_resp))
