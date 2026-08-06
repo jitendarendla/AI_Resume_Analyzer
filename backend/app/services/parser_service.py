@@ -56,7 +56,7 @@ SKILL_REGEX_MAP = {
 }
 
 EMAIL_REGEX = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
-PHONE_REGEX = re.compile(r'(?:(?:\+|\d{1,3})[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}')
+PHONE_REGEX = re.compile(r'(?:\+|\b)(?:[0-9]{1,4}[-.\s]?)?\(?[0-9]{1,4}\)?[-.\s]?[0-9]{2,4}[-.\s]?[0-9]{3,4}(?:[-.\s]?[0-9]{3,4})?\b')
 LINKEDIN_REGEX = re.compile(r'(?:https?://)?(?:www\.)?linkedin\.com/in/[a-zA-Z0-9_-]+/?', re.IGNORECASE)
 GITHUB_REGEX = re.compile(r'(?:https?://)?(?:www\.)?github\.com/[a-zA-Z0-9_-]+/?', re.IGNORECASE)
 DATE_YEAR_REGEX = re.compile(r'\b(19\d\d|20\d\d)\b')
@@ -91,14 +91,35 @@ LOCATION_SKILLS_KEYWORDS = {
 }
 
 LOCATION_INDICATORS = {
-    'usa', 'us', 'united states', 'india', 'uk', 'united kingdom', 'canada',
+    # North America
+    'usa', 'us', 'united states', 'canada', 'mexico',
     'chicago', 'richmond', 'virginia', 'texas', 'missouri', 'california', 'new york',
-    'new jersey', 'georgia', 'florida', 'washington', 'maryland', 'illinois',
-    'hyderabad', 'bangalore', 'bengaluru', 'mumbai', 'delhi', 'pune', 'chennai',
-    'london', 'toronto', 'vancouver', 'europe', 'asia', 'singapore', 'dubai',
+    'new jersey', 'georgia', 'florida', 'washington', 'maryland', 'illinois', 'pennsylvania',
+    'massachusetts', 'north carolina', 'ohio', 'michigan', 'colorado', 'arizona', 'oregon',
     'mckinney', 'austin', 'dallas', 'houston', 'san jose', 'san francisco', 'seattle',
-    'panama city beach', 'panama city', 'orlando', 'tampa', 'miami', 'atlanta',
-    'tx', 'va', 'il', 'mo', 'ca', 'ny', 'nj', 'ga', 'fl', 'wa', 'md', 'nc', 'ma', 'pa', 'oh', 'mi'
+    'panama city beach', 'panama city', 'orlando', 'tampa', 'miami', 'atlanta', 'boston',
+    'toronto', 'vancouver', 'montreal', 'ottawa', 'calgary', 'edmonton',
+    'tx', 'va', 'il', 'mo', 'ca', 'ny', 'nj', 'ga', 'fl', 'wa', 'md', 'nc', 'ma', 'pa', 'oh', 'mi', 'co', 'az', 'or',
+    
+    # Europe
+    'uk', 'united kingdom', 'england', 'scotland', 'ireland', 'germany', 'france', 'spain', 'italy',
+    'netherlands', 'switzerland', 'sweden', 'norway', 'denmark', 'finland', 'poland', 'austria', 'belgium',
+    'london', 'manchester', 'birmingham', 'edinburgh', 'glasgow', 'dublin', 'belfast',
+    'berlin', 'munich', 'frankfurt', 'hamburg', 'cologne', 'stuttgart', 'paris', 'lyon', 'marseille',
+    'amsterdam', 'rotterdam', 'zurich', 'geneva', 'basel', 'madrid', 'barcelona', 'rome', 'milan',
+    'stockholm', 'oslo', 'copenhagen', 'helsinki', 'warsaw', 'krakow', 'vienna', 'brussels',
+    
+    # Asia & Middle East
+    'india', 'singapore', 'japan', 'china', 'south korea', 'taiwan', 'hong kong',
+    'united arab emirates', 'uae', 'dubai', 'abu dhabi', 'saudi arabia', 'riyadh', 'qatar', 'doha',
+    'hyderabad', 'bangalore', 'bengaluru', 'mumbai', 'delhi', 'new delhi', 'gurgaon', 'gurugram',
+    'noida', 'pune', 'chennai', 'kolkata', 'ahmedabad', 'thane', 'kochi',
+    'tokyo', 'osaka', 'shanghai', 'beijing', 'shenzhen', 'seoul',
+    
+    # Oceania & South America & Africa
+    'australia', 'new zealand', 'brazil', 'argentina', 'chile', 'south africa', 'nigeria', 'egypt',
+    'sydney', 'melbourne', 'brisbane', 'perth', 'adelaide', 'auckland', 'wellington',
+    'são paulo', 'rio de janeiro', 'buenos aires', 'johannesburg', 'cape town', 'cairo', 'lagos'
 }
 
 INVALID_LOC_KEYWORDS = {
