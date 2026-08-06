@@ -4,7 +4,7 @@ import pandas as pd
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from app.core.config import settings
-from app.services.parser_service import clean_candidate_name, clean_candidate_location, extract_technology_title
+from app.services.parser_service import clean_candidate_name, clean_candidate_location, extract_technology_title, extract_rule_based_details
 
 def generate_excel_report(report_name: str, candidate_data: list[dict]) -> str:
     filename = f"{report_name.replace(' ', '_')}_{int(datetime.now().timestamp())}.xlsx"
@@ -19,6 +19,11 @@ def generate_excel_report(report_name: str, candidate_data: list[dict]) -> str:
         raw_loc = item.get("location") or ""
         raw_text = item.get("raw_text") or ""
         skills_raw = item.get("skills") or []
+        
+        # Fallback to extract skills from raw text if skills list is empty
+        if not skills_raw and raw_text:
+            extracted = extract_rule_based_details(raw_text, resume_file)
+            skills_raw = extracted.get("skills") or []
         
         if isinstance(skills_raw, list):
             skills_str = ", ".join([str(s) for s in skills_raw if s])

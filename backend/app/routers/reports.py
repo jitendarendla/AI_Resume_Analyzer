@@ -59,6 +59,7 @@ def export_excel_report(
             "phone": c.phone,
             "file_name": c.file_name,
             "location": c.location,
+            "skills": c.skills,
             "raw_text": c.raw_text
         })
 
