@@ -48,11 +48,11 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight font-heading leading-tight max-w-4xl mx-auto relative z-10">
-              AI-Powered Bulk <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">Resume Analyzer</span> & ATS Matcher
+              AI-Powered Bulk <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">Resume Analyzer</span> & Excel Generator
             </h1>
 
             <p className="text-sm sm:text-lg font-semibold text-slate-400 max-w-3xl mx-auto leading-relaxed relative z-10">
-              Upload hundreds of candidate CVs in seconds. Extract 100% accurate skills, contact details, education, work experience, and generate instant Job Description match scoring reports.
+              Upload hundreds of candidate CVs in seconds. Extract 100% accurate skills, contact details, location, technology title, and generate instant formatted Excel reports.
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-4 pt-2 relative z-10">
@@ -116,7 +116,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-lg font-black text-white font-heading">High Concurrency Bulk Parsing</h3>
               <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                Upload up to 1000+ resumes per batch. Our 32-worker parallel engine parses PDF, DOCX, and TXT files instantly.
+                Upload up to 1000+ resumes per batch. Our parallel engine parses PDF, DOCX, and TXT files instantly.
               </p>
             </div>
 
@@ -126,7 +126,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-lg font-black text-white font-heading">100% Accurate Data Extraction</h3>
               <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                Extract candidate names, emails, phone numbers, locations, skills, education, certifications, and links without fake placeholders.
+                Extract candidate names, emails, phone numbers, locations, technology title, and skills without fake placeholders.
               </p>
             </div>
 
@@ -134,9 +134,9 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-black shadow-md">
                 <FileSpreadsheet className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-black text-white font-heading">Instant Excel Report Generator</h3>
+              <h3 className="text-lg font-black text-white font-heading">7-Column Excel Generator</h3>
               <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                Download structured OpenPyXL `.xlsx` candidate spreadsheets with custom ATS scores, skill matrices, and contact details.
+                Download structured OpenPyXL `.xlsx` candidate spreadsheets with S.No, Name, Email, Phone, Location, Technology/Title, and Skills.
               </p>
             </div>
           </div>
@@ -158,8 +158,8 @@ export default function HomePage() {
 
             <div className="p-6 rounded-3xl bg-[#111827]/80 border border-white/10 shadow-xl space-y-3">
               <span className="text-2xl font-black text-blue-400 font-mono">02</span>
-              <h4 className="font-black text-white text-base font-heading">Target JD Input</h4>
-              <p className="text-xs text-slate-400 font-medium">Paste your job description requirements to enable automated ATS skill matching.</p>
+              <h4 className="font-black text-white text-base font-heading">Folder Organization</h4>
+              <p className="text-xs text-slate-400 font-medium">Group resumes into custom folder campaigns for instant tracking and Excel export.</p>
             </div>
 
             <div className="p-6 rounded-3xl bg-[#111827]/80 border border-white/10 shadow-xl space-y-3">

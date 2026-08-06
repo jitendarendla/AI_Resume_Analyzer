@@ -22,10 +22,7 @@ import {
 import Link from 'next/link';
 
 export default function UploadPage() {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [reportName, setReportName] = useState('');
-  const [jobDescription, setJobDescription] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -106,7 +103,7 @@ export default function UploadPage() {
         } else if (data.status === 'COMPLETED') {
           clearInterval(interval);
           setProgress(100);
-          setStatusMessage('Analysis complete! All candidate profiles extracted.');
+          setStatusMessage('Extraction complete! All candidate profiles parsed.');
           setUploading(false);
           setReanalyzing(false);
           setShowSuccessModal(true);
@@ -126,11 +123,7 @@ export default function UploadPage() {
     e.preventDefault();
 
     if (!reportName.trim()) {
-      alert('Please enter a Campaign / Report Title.');
-      return;
-    }
-    if (!jobDescription.trim()) {
-      alert('Please enter or paste the target Job Description (JD).');
+      alert('Please enter a Folder / Report Title.');
       return;
     }
     if (files.length === 0) {
@@ -145,7 +138,7 @@ export default function UploadPage() {
     try {
       const formData = new FormData();
       formData.append('report_name', reportName.trim());
-      formData.append('job_description', jobDescription.trim());
+      formData.append('job_description', '');
 
       files.forEach((file) => {
         formData.append('files', file);
@@ -173,17 +166,17 @@ export default function UploadPage() {
     setUploading(true);
     setReanalyzing(true);
     setProgress(0);
-    setStatusMessage('Re-Analyzing all candidate resumes with AI...');
+    setStatusMessage('Re-Extracting all candidate resumes with AI...');
 
     try {
       const formData = new FormData();
-      formData.append('job_description', jobDescription);
+      formData.append('job_description', '');
       const res = await api.post(`/api/upload/reanalyze/${currentSessionId}`, formData);
       pollStatus(res.data.session_id || currentSessionId);
     } catch (e: any) {
       setUploading(false);
       setReanalyzing(false);
-      alert(e.response?.data?.detail || 'Re-analysis failed.');
+      alert(e.response?.data?.detail || 'Re-extraction failed.');
     }
   };
 
@@ -217,257 +210,234 @@ export default function UploadPage() {
 
       <main className="pt-20 sm:pt-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
         {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-blue-950/80 to-slate-900 border border-white/10 shadow-2xl relative overflow-hidden backdrop-blur-xl">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 text-cyan-400 font-extrabold text-xs tracking-wider uppercase mb-1">
-                <UploadCloud className="w-4 h-4 text-cyan-400 animate-pulse" /> Bulk Resume Processing Engine
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-heading">Upload & Evaluate Candidate Resumes</h1>
-              <p className="text-xs sm:text-sm font-semibold text-slate-400 mt-1">Extract ATS metrics, match skills against Job Description, and auto-export formatted reports</p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-blue-950/80 to-slate-900 border border-white/10 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 text-cyan-400 font-extrabold text-xs tracking-wider uppercase mb-1">
+              <UploadCloud className="w-4 h-4 text-cyan-400 animate-pulse" /> Bulk Resume Processing Engine
             </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-heading">Upload Candidate Resumes</h1>
+            <p className="text-xs sm:text-sm font-semibold text-slate-400 mt-1">Extract 100% accurate candidate contact details, location, title & skills into structured Excel reports</p>
+          </div>
+        </div>
+
+        {/* Upload Form */}
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Form Left Side */}
+          <div className="lg:col-span-2 p-5 sm:p-7 rounded-3xl bg-[#111827]/80 border border-white/10 shadow-xl backdrop-blur-xl space-y-5">
+            <div>
+              <label className="block text-xs font-black text-slate-200 uppercase tracking-wider mb-2 font-heading">
+                Folder / Report Title <span className="text-rose-400 font-bold">* (Required)</span>
+              </label>
+              <input
+                type="text"
+                required
+                suppressHydrationWarning
+                placeholder="Enter Folder / Report Title (e.g. Gen AI Developers Batch)..."
+                value={reportName}
+                onChange={(e) => setReportName(e.target.value)}
+                className="w-full bg-slate-900/80 border border-white/10 text-white text-xs rounded-2xl px-4 py-3.5 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 font-bold placeholder-slate-500 transition-all"
+              />
+            </div>
+
+            {/* Drag and Drop Zone */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-3xl p-6 sm:p-8 text-center transition-all ${
+                dragActive ? 'border-cyan-400 bg-cyan-500/10' : 'border-white/15 bg-slate-900/50 hover:bg-slate-900/80'
+              }`}
+            >
+              <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto mb-3 border border-cyan-500/20 shadow-md">
+                <UploadCloud className="w-7 h-7" />
+              </div>
+              <p className="text-sm sm:text-base font-black text-white font-heading">Drag & Drop Resume Files or Folders Here</p>
+              <p className="text-xs font-medium text-slate-400 mt-1 mb-5">Supports PDF & DOCX formats (Up to 100+ files per batch)</p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <label className="sleek-btn-primary text-xs cursor-pointer w-full sm:w-auto shadow-lg shadow-cyan-500/20">
+                  <span>Select Individual Files</span>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.docx,.doc"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+
+                <label className="px-5 py-3 rounded-2xl bg-slate-800 border border-white/10 text-slate-200 hover:bg-slate-700 font-extrabold text-xs transition-all cursor-pointer w-full sm:w-auto text-center">
+                  <span>Upload Entire Folder</span>
+                  <input
+                    type="file"
+                    // @ts-ignore
+                    webkitdirectory="true"
+                    directory="true"
+                    multiple
+                    onChange={handleFolderChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* File List */}
+            {files.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-black text-slate-200">
+                  <span>Queued Files ({files.length})</span>
+                  <button
+                    type="button"
+                    onClick={() => setFiles([])}
+                    className="text-rose-400 hover:underline cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                </div>
+                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-2">
+                  {files.map((file, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-white/10 text-xs font-medium"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <FileText className="w-4 h-4 text-cyan-400 shrink-0" />
+                        <span className="truncate text-slate-200 font-semibold">{file.name}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">({(file.size / 1024).toFixed(1)} KB)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(idx)}
+                        className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={uploading || files.length === 0}
+              className="sleek-btn-primary w-full text-xs font-black py-4 cursor-pointer disabled:opacity-50 shadow-xl shadow-cyan-500/20"
+            >
+              {uploading ? (
+                <span className="flex items-center gap-2 justify-center">
+                  <RotateCw className="w-4 h-4 animate-spin" />
+                  <span>Extracting Candidate Profiles...</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-2 justify-center">
+                  <Sparkles className="w-4 h-4 text-cyan-200" />
+                  <span>Run AI Resume Extraction Engine</span>
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              )}
+            </button>
           </div>
 
-          {/* Upload Form */}
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Form Left Side */}
-            <div className="lg:col-span-2 p-5 sm:p-7 rounded-3xl bg-[#111827]/80 border border-white/10 shadow-xl backdrop-blur-xl space-y-5">
-              <div>
-                <label className="block text-xs font-black text-slate-200 uppercase tracking-wider mb-2 font-heading">
-                  Folder / Report Title <span className="text-rose-400 font-bold">* (Required)</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  suppressHydrationWarning
-                  placeholder="Enter Campaign / Report Title (Required)..."
-                  value={reportName}
-                  onChange={(e) => setReportName(e.target.value)}
-                  className="w-full bg-slate-900/80 border border-white/10 text-white text-xs rounded-2xl px-4 py-3.5 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 font-bold placeholder-slate-500 transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-black text-slate-200 uppercase tracking-wider mb-2 font-heading">
-                  Target Job Description (JD) <span className="text-rose-400 font-bold">* (Required)</span>
-                </label>
-                <textarea
-                  rows={4}
-                  required
-                  suppressHydrationWarning
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  className="w-full bg-slate-900/80 border border-white/10 text-white text-xs rounded-2xl p-4 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 font-bold placeholder-slate-500 transition-all"
-                  placeholder="Paste target Job Description requirements here (Required)..."
-                ></textarea>
-              </div>
-
-              {/* Drag and Drop Zone */}
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-3xl p-6 sm:p-8 text-center transition-all ${
-                  dragActive ? 'border-cyan-400 bg-cyan-500/10' : 'border-white/15 bg-slate-900/50 hover:bg-slate-900/80'
-                }`}
-              >
-                <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto mb-3 border border-cyan-500/20 shadow-md">
-                  <UploadCloud className="w-7 h-7" />
-                </div>
-                <p className="text-sm sm:text-base font-black text-white font-heading">Drag & Drop Resume Files or Folders Here</p>
-                <p className="text-xs font-medium text-slate-400 mt-1 mb-5">Supports PDF & DOCX formats (Up to 100+ files per batch)</p>
-
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <label className="sleek-btn-primary text-xs cursor-pointer w-full sm:w-auto shadow-lg shadow-cyan-500/20">
-                    <span>Select Individual Files</span>
-                    <input
-                      type="file"
-                      multiple
-                      accept=".pdf,.docx,.doc"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </label>
-
-                  <label className="px-5 py-3 rounded-2xl bg-slate-800 border border-white/10 text-slate-200 hover:bg-slate-700 font-extrabold text-xs transition-all cursor-pointer w-full sm:w-auto text-center">
-                    <span>Upload Entire Folder</span>
-                    <input
-                      type="file"
-                      // @ts-ignore
-                      webkitdirectory="true"
-                      directory="true"
-                      multiple
-                      onChange={handleFolderChange}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* File List */}
-              {files.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs font-black text-slate-200">
-                    <span>Queued Files ({files.length})</span>
-                    <button
-                      type="button"
-                      onClick={() => setFiles([])}
-                      className="text-rose-400 hover:underline cursor-pointer"
-                    >
-                      Clear All
-                    </button>
-                  </div>
-                  <div className="max-h-40 overflow-y-auto space-y-1.5 pr-2">
-                    {files.map((file, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-white/10 text-xs font-medium"
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          <FileText className="w-4 h-4 text-cyan-400 shrink-0" />
-                          <span className="truncate text-slate-200 font-semibold">{file.name}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">({(file.size / 1024).toFixed(1)} KB)</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeFile(idx)}
-                          className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
+          {/* Sidebar Guide */}
+          <div className="p-5 sm:p-7 rounded-3xl bg-[#111827]/80 border border-white/10 shadow-xl backdrop-blur-xl space-y-4 flex flex-col justify-between">
+            <div>
+              <h3 className="text-base font-black text-white font-heading mb-3">AI Resume Parser Guide</h3>
+              <div className="space-y-3 text-xs text-slate-400">
+                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-white/5">
+                  <Zap className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-slate-200">High Concurrency Parsing</p>
+                    <p className="text-[11px]">Extracts candidate names, emails, phones, location, technology title & skills.</p>
                   </div>
                 </div>
-              )}
 
-              <button
-                type="submit"
-                disabled={uploading || files.length === 0}
-                className="sleek-btn-primary w-full text-xs font-black py-4 cursor-pointer disabled:opacity-50 shadow-xl shadow-cyan-500/20"
-              >
-                {uploading ? (
-                  <span className="flex items-center gap-2 justify-center">
-                    <RotateCw className="w-4 h-4 animate-spin" />
-                    <span>Evaluating Candidate Resumes...</span>
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2 justify-center">
-                    <Sparkles className="w-4 h-4 text-cyan-200" />
-                    <span>Run AI Resume Evaluation Engine</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </span>
-                )}
-              </button>
+                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-white/5">
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-slate-200">Structured Excel Report</p>
+                    <p className="text-[11px]">Instant exportable 7-column Excel sheet (S.No, Name, Email, Phone, Location, Technology/Title, Skills).</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-white/5">
+                  <Users className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-slate-200">Folder-Wise Tracking</p>
+                    <p className="text-[11px]">All uploaded batches are stored by Folder Title for instant access.</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Sidebar Guide */}
-            <div className="p-5 sm:p-7 rounded-3xl bg-[#111827]/80 border border-white/10 shadow-xl backdrop-blur-xl space-y-4 flex flex-col justify-between">
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/10">
+              <p className="text-[11px] font-bold text-cyan-300 flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Verified Supported Formats</span>
+              </p>
+              <p className="text-[10px] text-slate-400 font-medium mt-0.5">.pdf, .docx, .doc (Unlimited files per folder)</p>
+            </div>
+          </div>
+        </form>
+
+        {/* Progress & Success Modal */}
+        {uploading && (
+          <div className="fixed inset-0 z-50 bg-[#090D16]/80 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto border border-cyan-500/20 shadow-lg">
+                <RotateCw className="w-8 h-8 animate-spin" />
+              </div>
               <div>
-                <h3 className="text-base font-black text-white font-heading mb-3">AI Resume Match Engine Guide</h3>
-                <div className="space-y-3 text-xs text-slate-400">
-                  <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-white/5">
-                    <Zap className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-slate-200">High Concurrency Parsing</p>
-                      <p className="text-[11px]">Extracts skills, experience years, education & ATS match scores.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-white/5">
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-slate-200">Auto Excel Generation</p>
-                      <p className="text-[11px]">Instant exportable Excel sheet with match percentages and rankings.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-white/5">
-                    <Users className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-slate-200">Folder-Wise Tracking</p>
-                      <p className="text-[11px]">All uploaded batches are stored by Folder Title for instant access.</p>
-                    </div>
-                  </div>
-                </div>
+                <h3 className="text-lg font-black text-white font-heading">Extracting Candidate Data</h3>
+                <p className="text-xs font-bold text-slate-400 mt-1">{statusMessage}</p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/10">
-                <p className="text-[11px] font-bold text-cyan-300 flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Verified Supported Formats</span>
+              <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-white/5">
+                <div
+                  className="bg-gradient-to-r from-cyan-500 to-blue-600 h-full transition-all duration-300 rounded-full"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+              <p className="text-xs font-mono font-black text-cyan-400">{progress}% Completed</p>
+            </div>
+          </div>
+        )}
+
+        {showSuccessModal && (
+          <div className="fixed inset-0 z-50 bg-[#090D16]/80 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-5 animate-in fade-in zoom-in">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20 shadow-lg">
+                <CheckCircle className="w-8 h-8" />
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-white font-heading">Resume Processing Complete!</h3>
+                <p className="text-xs font-bold text-slate-400 mt-1">
+                  Successfully parsed <span className="text-emerald-400 font-mono font-black">{processedCount}</span> candidate profiles into <span className="text-cyan-400 font-black">{reportName}</span> folder.
                 </p>
-                <p className="text-[10px] text-slate-400 font-medium mt-0.5">.pdf, .docx, .doc (Unlimited files per folder)</p>
+              </div>
+
+              <div className="space-y-2.5 pt-2">
+                <button
+                  onClick={handleDownloadExcel}
+                  className="sleek-btn-primary w-full text-xs font-black py-3.5 cursor-pointer shadow-lg shadow-cyan-500/20"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Excel Report (.xlsx)</span>
+                </button>
+
+                <Link
+                  href={`/candidates?session_id=${currentSessionId}`}
+                  className="block text-xs font-black text-cyan-400 hover:underline pt-2"
+                >
+                  View Candidate Profiles Directory →
+                </Link>
               </div>
             </div>
-          </form>
-
-          {/* Progress & Success Modal */}
-          {uploading && (
-            <div className="fixed inset-0 z-50 bg-[#090D16]/80 backdrop-blur-md flex items-center justify-center p-4">
-              <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4">
-                <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto border border-cyan-500/20 shadow-lg">
-                  <RotateCw className="w-8 h-8 animate-spin" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-white font-heading">Processing Resumes with AI</h3>
-                  <p className="text-xs font-bold text-slate-400 mt-1">{statusMessage}</p>
-                </div>
-
-                <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-white/5">
-                  <div
-                    className="bg-gradient-to-r from-cyan-500 to-blue-600 h-full transition-all duration-300 rounded-full"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-                <p className="text-xs font-mono font-black text-cyan-400">{progress}% Completed</p>
-              </div>
-            </div>
-          )}
-
-          {showSuccessModal && (
-            <div className="fixed inset-0 z-50 bg-[#090D16]/80 backdrop-blur-md flex items-center justify-center p-4">
-              <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-5 animate-in fade-in zoom-in">
-                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20 shadow-lg">
-                  <CheckCircle className="w-8 h-8" />
-                </div>
-
-                <div>
-                  <h3 className="text-xl font-black text-white font-heading">Resume Processing Complete!</h3>
-                  <p className="text-xs font-bold text-slate-400 mt-1">
-                    Successfully parsed <span className="text-emerald-400 font-mono font-black">{processedCount}</span> candidate profiles into <span className="text-cyan-400 font-black">{reportName}</span> folder.
-                  </p>
-                </div>
-
-                <div className="space-y-2.5 pt-2">
-                  <button
-                    onClick={handleDownloadExcel}
-                    className="sleek-btn-primary w-full text-xs font-black py-3.5 cursor-pointer shadow-lg shadow-cyan-500/20"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download Excel Report (.xlsx)</span>
-                  </button>
-
-                  <button
-                    onClick={handleReanalyze}
-                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-800 border border-white/10 text-slate-200 hover:bg-slate-700 font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <RotateCw className="w-4 h-4" />
-                    <span>Re-Analyze with New Requirements</span>
-                  </button>
-
-                  <Link
-                    href={`/candidates?session_id=${currentSessionId}`}
-                    className="block text-xs font-black text-cyan-400 hover:underline pt-2"
-                  >
-                    View Candidates & Match Breakdown →
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
-        </main>
+          </div>
+        )}
+      </main>
       <FloatingDock />
     </div>
   );
