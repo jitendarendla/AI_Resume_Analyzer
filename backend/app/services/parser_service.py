@@ -97,8 +97,28 @@ LOCATION_INDICATORS = {
     'hyderabad', 'bangalore', 'bengaluru', 'mumbai', 'delhi', 'pune', 'chennai',
     'london', 'toronto', 'vancouver', 'europe', 'asia', 'singapore', 'dubai',
     'mckinney', 'austin', 'dallas', 'houston', 'san jose', 'san francisco', 'seattle',
-    'tx', 'va', 'il', 'mo', 'ca', 'ny', 'nj', 'ga', 'fl', 'wa', 'md', 'nc', 'ma', 'pa'
+    'panama city beach', 'panama city', 'orlando', 'tampa', 'miami', 'atlanta',
+    'tx', 'va', 'il', 'mo', 'ca', 'ny', 'nj', 'ga', 'fl', 'wa', 'md', 'nc', 'ma', 'pa', 'oh', 'mi'
 }
+
+INVALID_LOC_KEYWORDS = {
+    'snowflake', 'databricks', 'apache', 'spark', 'scala', 'feast', 'strategy', 'governance',
+    'django', 'flask', 'machine', 'learning', 'deep', 'embedding', 'models', 'model', 'prompt',
+    'engineering', 'ai', 'ml', 'nlp', 'cloud', 'data', 'architecture', 'design', 'development',
+    'golang', 'developer', 'engineer', 'architect', 'consultant', 'programmer', 'lead',
+    'manager', 'analyst', 'specialist', 'administrator', 'sr', 'jr', 'senior', 'junior',
+    'full stack', 'backend', 'frontend', 'software', 'devops', 'skills', 'experience', 'education',
+    'python', 'javascript', 'typescript', 'java', 'react', 'next.js', 'vue', 'angular',
+    'node.js', 'express', 'fastapi', 'spring', 'boot', 'microservices', 'postgresql', 'postgres',
+    'mysql', 'mongodb', 'redis', 'elasticsearch', 'docker', 'kubernetes', 'k8s', 'aws', 'azure', 'gcp'
+}
+
+REJECT_NAME_WORDS = [
+    "page", "of", "work", "history", "employment", "project", "details",
+    "scalability", "transformation", "across", "warm", "regards", "ph", "no",
+    "summary", "profile", "contact", "curriculum", "vitae", "resume", "dice",
+    "experience", "education", "skills", "objective", "professional", "references", "cover", "letter"
+]
 
 # Non-blocking lock for local Ollama server
 ollama_lock = threading.Lock()
@@ -135,20 +155,37 @@ def extract_text_from_file(file_path: str) -> str:
 
 def clean_candidate_name(raw_name: str, filename: str = "", email: str = "", raw_text: str = "") -> str:
     name_clean = str(raw_name or "").strip()
+
+    # Strip leading noise prefixes
+    name_clean = re.sub(r'^(?:name|candidate|applicant|fullName)\s*[:\-]?\s*', '', name_clean, flags=re.IGNORECASE).strip()
+
+    # Strip trailing visa/doc noise suffixes
+    name_clean = re.sub(r'\s+\b(?:I94|H1B|Travel|Visa|Resume|CV|Docx?|Pdf)\b.*$', '', name_clean, flags=re.IGNORECASE).strip()
+
+    name_lower = name_clean.lower()
     words = [w.lower().strip('.') for w in name_clean.split()]
+
+    is_invalid = False
+    if any(nw in words for nw in ["work", "history", "employment", "details", "scalability", "transformation", "across", "warm", "regards", "ph", "no", "page"]):
+        is_invalid = True
+    if len(words) == 2 and words[0] == "page" and words[1] == "of":
+        is_invalid = True
 
     job_words_count = sum(1 for w in words if w in JOB_TITLE_KEYWORDS)
     if job_words_count > 0 and (job_words_count >= len(words) / 2 or 'developer' in words or 'engineer' in words or 'sr' in words or 'dice' in words):
+        is_invalid = True
+
+    if is_invalid or not name_clean or name_lower in ['candidate', 'n/a', 'unknown', 'sr. golang developer', 'golang developer']:
         name_clean = ""
 
-    if not name_clean or name_clean.lower() in ['candidate', 'n/a', 'unknown', 'sr. golang developer', 'golang developer']:
         if filename:
             base = filename.rsplit('.', 1)[0]
             base = re.sub(r'^(?:Dice_)?(?:Resume_)?(?:CV_)?(?:Resume)?', '', base, flags=re.IGNORECASE)
-            base = re.sub(r'(?:_Golang_Developer|_Golang|_Developer|_CV|_pro|_pdf|_docx)$', '', base, flags=re.IGNORECASE)
+            base = re.sub(r'(?:_Golang_Developer|_Golang|_Developer|_CV|_pro|_pdf|_docx|_Gen_AI_Engineer|_cover_letter|_Resume)$', '', base, flags=re.IGNORECASE)
             base = re.sub(r'[-_]', ' ', base).strip()
             base = re.sub(r'([a-z])([A-Z])', r'\1 \2', base).strip()
-            fn_words = [w for w in base.split() if w.lower() not in JOB_TITLE_KEYWORDS]
+            base = re.sub(r'\b(?:I94|H1B|Travel|Gen AI Engineer|Sr Gen AI Developer|Developer|Engineer|CV|Resume)\b', '', base, flags=re.IGNORECASE).strip()
+            fn_words = [w for w in base.split() if w.lower() not in JOB_TITLE_KEYWORDS and len(w) > 1]
             if fn_words:
                 name_clean = " ".join(fn_words).title()
 
@@ -166,13 +203,15 @@ def clean_candidate_location(raw_loc: str, text: str = "") -> str:
         return ""
 
     loc_clean = raw_loc.strip()
-    words = [w.lower().strip(',.()') for w in re.split(r'[\s,]+', loc_clean) if w]
+    loc_lower = loc_clean.lower()
 
+    # Reject if ANY word in location matches a tech skill or invalid keyword
+    words = [w.lower().strip(',.()') for w in re.split(r'[\s,]+', loc_clean) if w]
     for w in words:
-        if w in LOCATION_SKILLS_KEYWORDS:
+        if w in INVALID_LOC_KEYWORDS or w in LOCATION_SKILLS_KEYWORDS or w in SKILLS_DATABASE:
             return ""
 
-    loc_lower = loc_clean.lower()
+    # Check for valid location indicator
     has_loc = any(ind in loc_lower for ind in LOCATION_INDICATORS)
     if not has_loc:
         return ""
@@ -180,6 +219,39 @@ def clean_candidate_location(raw_loc: str, text: str = "") -> str:
     loc_clean = re.sub(r'^[A-Z][a-z]+\s+[A-Z][a-z]+(?=[A-Z])', '', loc_clean).strip()
     loc_clean = re.sub(r'^St,\s*', '', loc_clean).strip()
     return loc_clean
+
+def extract_technology_title(text: str = "", filename: str = "", skills: list = None) -> str:
+    if filename:
+        fn_lower = filename.lower()
+        if "gen ai" in fn_lower or "generative ai" in fn_lower:
+            return "Sr. Gen AI Developer"
+        elif "golang" in fn_lower or "go developer" in fn_lower:
+            return "Golang Developer"
+        elif "full stack" in fn_lower or "fullstack" in fn_lower:
+            return "Full Stack Engineer"
+        elif "data engineer" in fn_lower or "spark" in fn_lower or "snowflake" in fn_lower:
+            return "Data Engineer"
+        elif "backend" in fn_lower:
+            return "Backend Engineer"
+        elif "devops" in fn_lower:
+            return "DevOps Engineer"
+
+    if text:
+        lines = [l.strip() for l in text.split("\n") if l.strip()][:10]
+        for line in lines:
+            line_lower = line.lower()
+            if any(term in line_lower for term in ["developer", "engineer", "architect", "consultant", "lead", "specialist"]):
+                if len(line) < 65 and not any(kw in line_lower for kw in ["experience", "education", "skills", "summary", "profile", "contact"]):
+                    clean_title = re.sub(r'[^a-zA-Z0-9\s/.-]', '', line).strip()
+                    if clean_title:
+                        return clean_title.title()
+
+    if skills and len(skills) > 0:
+        top_skills = [s for s in skills[:2] if isinstance(s, str)]
+        if top_skills:
+            return f"{' / '.join(top_skills)} Developer"
+
+    return "Software Engineer"
 
 def normalize_llm_dict(raw: dict) -> dict:
     if not isinstance(raw, dict):
