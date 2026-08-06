@@ -1,10 +1,15 @@
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 import pandas as pd
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from app.core.config import settings
-from app.services.parser_service import clean_candidate_name, clean_candidate_location, extract_technology_title, extract_rule_based_details
+from app.services.parser_service import (
+    clean_candidate_name,
+    clean_candidate_location,
+    extract_technology_title,
+    extract_rule_based_details
+)
 
 def generate_excel_report(report_name: str, candidate_data: list[dict]) -> str:
     filename = f"{report_name.replace(' ', '_')}_{int(datetime.now().timestamp())}.xlsx"
@@ -58,45 +63,46 @@ def generate_excel_report(report_name: str, candidate_data: list[dict]) -> str:
             "Skills": "N/A"
         })
 
-    df = pd.DataFrame(rows)
-
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Candidate Summary"
 
-    # Explicitly show gridlines
+    # Show gridlines
     ws.views.sheetView[0].showGridLines = True
 
     # Freeze header row
     ws.freeze_panes = "A2"
 
-    # Define Styles
-    header_fill = PatternFill(start_color="0B132B", end_color="0B132B", fill_type="solid")
-    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    # Premium Style System (Executive Navy Theme)
+    header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+    header_font = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
     
     even_row_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
     odd_row_fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
 
-    data_font = Font(name="Calibri", size=10, color="1E293B")
-    email_font = Font(name="Calibri", size=10, color="2563EB", underline="single")
+    name_font = Font(name="Segoe UI", size=10.5, bold=True, color="0F172A")
+    title_font = Font(name="Segoe UI", size=10, bold=True, color="0369A1")
+    email_font = Font(name="Segoe UI", size=10, color="2563EB", underline="single")
+    data_font = Font(name="Segoe UI", size=10, color="1E293B")
+    skills_font = Font(name="Segoe UI", size=9.5, color="334155")
 
     thin_border = Border(
-        left=Side(style="thin", color="CBD5E1"),
-        right=Side(style="thin", color="CBD5E1"),
-        top=Side(style="thin", color="CBD5E1"),
-        bottom=Side(style="thin", color="CBD5E1")
+        left=Side(style="thin", color="E2E8F0"),
+        right=Side(style="thin", color="E2E8F0"),
+        top=Side(style="thin", color="E2E8F0"),
+        bottom=Side(style="thin", color="E2E8F0")
     )
 
     header_border = Border(
         left=Side(style="thin", color="1E293B"),
         right=Side(style="thin", color="1E293B"),
-        top=Side(style="medium", color="0B132B"),
-        bottom=Side(style="medium", color="0047AB")
+        top=Side(style="medium", color="0F172A"),
+        bottom=Side(style="medium", color="0284C7")
     )
 
-    headers = list(df.columns)
+    headers = ["S.No", "Candidate Name", "Email ID", "Phone Number", "Location", "Technology/Title", "Skills"]
     ws.append(headers)
-    ws.row_dimensions[1].height = 30
+    ws.row_dimensions[1].height = 34
 
     for col_num, header_name in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col_num)
@@ -115,7 +121,7 @@ def generate_excel_report(report_name: str, candidate_data: list[dict]) -> str:
             row_data["Technology/Title"],
             row_data["Skills"]
         ])
-        ws.row_dimensions[row_idx].height = 22
+        ws.row_dimensions[row_idx].height = 28
         fill = even_row_fill if row_idx % 2 == 0 else odd_row_fill
 
         for col_num in range(1, 8):
@@ -123,27 +129,38 @@ def generate_excel_report(report_name: str, candidate_data: list[dict]) -> str:
             cell.fill = fill
             cell.border = thin_border
             
-            if col_num in [1]:  # S.No
+            if col_num == 1:  # S.No
                 cell.alignment = Alignment(horizontal="center", vertical="center")
                 cell.font = data_font
-            elif col_num in [2, 6, 7]:  # Name, Title, Skills
+            elif col_num == 2:  # Candidate Name
                 cell.alignment = Alignment(horizontal="left", vertical="center")
-                cell.font = data_font
+                cell.font = name_font
             elif col_num == 3:  # Email ID
                 cell.alignment = Alignment(horizontal="left", vertical="center")
                 cell.font = email_font if "@" in str(cell.value) else data_font
-            else:  # Phone Number, Location
+            elif col_num in [4, 5]:  # Phone, Location
                 cell.alignment = Alignment(horizontal="center", vertical="center")
                 cell.font = data_font
+            elif col_num == 6:  # Technology/Title
+                cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+                cell.font = title_font
+            elif col_num == 7:  # Skills
+                cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+                cell.font = skills_font
 
-    for col in ws.columns:
-        max_len = 0
-        for cell in col:
-            val_str = str(cell.value or "")
-            if len(val_str) > max_len:
-                max_len = len(val_str)
-        col_letter = openpyxl.utils.get_column_letter(col[0].column)
-        ws.column_dimensions[col_letter].width = min(max(max_len + 5, 14), 50)
+    # Set explicit column widths for beautiful layout
+    col_widths = {
+        "A": 9,   # S.No
+        "B": 28,  # Candidate Name
+        "C": 32,  # Email ID
+        "D": 18,  # Phone Number
+        "E": 24,  # Location
+        "F": 34,  # Technology/Title
+        "G": 65   # Skills
+    }
+
+    for col_letter, width in col_widths.items():
+        ws.column_dimensions[col_letter].width = width
 
     os.makedirs(settings.REPORTS_DIR, exist_ok=True)
     wb.save(filepath)

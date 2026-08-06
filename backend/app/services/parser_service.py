@@ -110,7 +110,9 @@ INVALID_LOC_KEYWORDS = {
     'full stack', 'backend', 'frontend', 'software', 'devops', 'skills', 'experience', 'education',
     'python', 'javascript', 'typescript', 'java', 'react', 'next.js', 'vue', 'angular',
     'node.js', 'express', 'fastapi', 'spring', 'boot', 'microservices', 'postgresql', 'postgres',
-    'mysql', 'mongodb', 'redis', 'elasticsearch', 'docker', 'kubernetes', 'k8s', 'aws', 'azure', 'gcp'
+    'mysql', 'mongodb', 'redis', 'elasticsearch', 'docker', 'kubernetes', 'k8s', 'aws', 'azure', 'gcp',
+    'vmware', 'aria', 'finance', 'retail', 'banking', 'healthcare', 'telecom', 'insurance',
+    'domain', 'domains', 'industry', 'product', 'products', 'services', 'agile', 'scrum'
 }
 
 REJECT_NAME_WORDS = [
@@ -158,6 +160,12 @@ def clean_candidate_name(raw_name: str, filename: str = "", email: str = "", raw
 
     # Strip leading noise prefixes
     name_clean = re.sub(r'^(?:name|candidate|applicant|fullName)\s*[:\-]?\s*', '', name_clean, flags=re.IGNORECASE).strip()
+
+    # Strip trailing numbers + years e.g. "10Years", "10 Years", "5+ Yrs"
+    name_clean = re.sub(r'\s+\d+\+?\s*(?:years?|yrs?|exp|experience)\b.*$', '', name_clean, flags=re.IGNORECASE).strip()
+
+    # Strip trailing tech stack keywords from candidate name
+    name_clean = re.sub(r'\s+\b(?:Java|Tech|AWS|Microservices|Python|Golang|React|Node|Full\s*stack|Developer|Engineer|Architect|Lead|Manager|Consultant|Sr|Senior|Jr|Junior)\b.*$', '', name_clean, flags=re.IGNORECASE).strip()
 
     # Strip trailing visa/doc noise suffixes
     name_clean = re.sub(r'\s+\b(?:I94|H1B|Travel|Visa|Resume|CV|Docx?|Pdf)\b.*$', '', name_clean, flags=re.IGNORECASE).strip()
@@ -221,6 +229,19 @@ def clean_candidate_location(raw_loc: str, text: str = "") -> str:
     return loc_clean
 
 def extract_technology_title(text: str = "", filename: str = "", skills: list = None) -> str:
+    # 1. Search top 25 lines of text for explicit job titles
+    if text:
+        lines = [l.strip() for l in text.split("\n") if l.strip()][:25]
+        for line in lines:
+            line_lower = line.lower()
+            if any(term in line_lower for term in ["developer", "engineer", "architect", "consultant", "lead", "specialist", "administrator"]):
+                if len(line) < 70 and not any(kw in line_lower for kw in ["experience", "education", "skills", "summary", "profile", "contact", "objective", "responsibilities"]):
+                    clean_title = re.sub(r'[^a-zA-Z0-9\s/.\-+]', '', line).strip()
+                    clean_title = re.sub(r'^(?:title|role|position|profile)\s*[:\-]?\s*', '', clean_title, flags=re.IGNORECASE).strip()
+                    if clean_title and len(clean_title.split()) <= 6:
+                        return clean_title.title()
+
+    # 2. Check filename for explicit role title
     if filename:
         fn_lower = filename.lower()
         if "gen ai" in fn_lower or "generative ai" in fn_lower:
@@ -235,21 +256,41 @@ def extract_technology_title(text: str = "", filename: str = "", skills: list = 
             return "Backend Engineer"
         elif "devops" in fn_lower:
             return "DevOps Engineer"
+        elif "architect" in fn_lower:
+            return "Software Architect"
 
-    if text:
-        lines = [l.strip() for l in text.split("\n") if l.strip()][:10]
-        for line in lines:
-            line_lower = line.lower()
-            if any(term in line_lower for term in ["developer", "engineer", "architect", "consultant", "lead", "specialist"]):
-                if len(line) < 65 and not any(kw in line_lower for kw in ["experience", "education", "skills", "summary", "profile", "contact"]):
-                    clean_title = re.sub(r'[^a-zA-Z0-9\s/.-]', '', line).strip()
-                    if clean_title:
-                        return clean_title.title()
+    # 3. Deduce Title from core tech stack
+    skills_lower = [str(s).lower() for s in (skills or []) if s]
+    
+    has_java = any('java' in s for s in skills_lower)
+    has_go = any(s in ['go', 'golang'] for s in skills_lower)
+    has_python = any('python' in s for s in skills_lower)
+    has_net = any(s in ['.net', 'c#', 'asp.net'] for s in skills_lower)
+    has_cloud = any(s in ['aws', 'azure', 'gcp', 'docker', 'kubernetes'] for s in skills_lower)
+    has_frontend = any(s in ['react', 'angular', 'vue', 'typescript', 'javascript'] for s in skills_lower)
+    has_data = any(s in ['spark', 'snowflake', 'hadoop', 'kafka', 'etl'] for s in skills_lower)
+    has_ai = any(s in ['machine learning', 'deep learning', 'llm', 'nlp', 'ai'] for s in skills_lower)
 
-    if skills and len(skills) > 0:
-        top_skills = [s for s in skills[:2] if isinstance(s, str)]
-        if top_skills:
-            return f"{' / '.join(top_skills)} Developer"
+    if has_java and has_cloud:
+        return "Senior Java / Cloud Developer"
+    elif has_java:
+        return "Senior Java Developer"
+    elif has_go:
+        return "Senior Golang Developer"
+    elif has_net and has_cloud:
+        return "Senior .NET / Cloud Developer"
+    elif has_net:
+        return "Senior .NET Developer"
+    elif has_python and has_ai:
+        return "AI / Python Engineer"
+    elif has_python:
+        return "Python Developer"
+    elif has_data:
+        return "Data Engineer"
+    elif has_frontend:
+        return "Full Stack / Frontend Developer"
+    elif has_cloud:
+        return "Cloud / DevOps Engineer"
 
     return "Software Engineer"
 
