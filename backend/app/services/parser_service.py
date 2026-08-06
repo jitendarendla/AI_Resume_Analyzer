@@ -222,19 +222,50 @@ def infer_name_from_email_or_filename(email: str = "", filename: str = "") -> st
 
     return "Candidate"
 
+def extract_top_of_page_name(text: str) -> str:
+    """Extract candidate name strictly from the top 5 lines of the resume text."""
+    if not text:
+        return ""
+
+    clean_text = preprocess_resume_text(text)
+    lines = [l.strip() for l in clean_text.split("\n") if l.strip()][:6]
+
+    for line in lines:
+        if "@" in line or "http" in line or "www." in line or re.search(r'\d{5,}', line):
+            continue
+
+        line_lower = line.lower()
+        if any(pat in line_lower for pat in REJECT_NAME_HEADER_PATTERNS):
+            continue
+
+        if any(h in line_lower for h in ["summary", "experience", "education", "skills", "profile", "contact", "objective", "responsibilities"]):
+            continue
+
+        clean_line = re.sub(r'^(?:name|candidate|applicant|fullName)\s*[:\-]?\s*', '', line, flags=re.IGNORECASE).strip()
+        clean_line = re.sub(r'\s+\d+\+?\s*(?:years?|yrs?|exp|experience)\b.*$', '', clean_line, flags=re.IGNORECASE).strip()
+        clean_line = re.sub(r'\s+\b(?:Java|Tech|AWS|Microservices|Python|Golang|React|Node|Full\s*stack|Developer|Engineer|Architect|Lead|Manager|Consultant|Sr|Senior|Jr|Junior)\b.*$', '', clean_line, flags=re.IGNORECASE).strip()
+
+        candidate_name = re.sub(r'[^a-zA-Z\s.-]', '', clean_line).strip()
+        words = [w for w in candidate_name.split() if w]
+
+        if 2 <= len(words) <= 5 and len(candidate_name) <= 45:
+            job_word_cnt = sum(1 for w in words if w.lower() in JOB_TITLE_KEYWORDS)
+            if job_word_cnt == 0 or (job_word_cnt < len(words) / 2):
+                return candidate_name.title()
+
+    return ""
+
 def clean_candidate_name(raw_name: str, filename: str = "", email: str = "", raw_text: str = "") -> str:
+    # 1. Try extracting name directly from top 5 lines of raw text first
+    top_name = extract_top_of_page_name(raw_text)
+    if top_name:
+        return top_name
+
+    # 2. Fall back to raw_name if provided and clean
     name_clean = str(raw_name or "").strip()
-
-    # Strip leading noise prefixes
     name_clean = re.sub(r'^(?:name|candidate|applicant|fullName)\s*[:\-]?\s*', '', name_clean, flags=re.IGNORECASE).strip()
-
-    # Strip trailing numbers + years e.g. "10Years", "10 Years", "5+ Yrs"
     name_clean = re.sub(r'\s+\d+\+?\s*(?:years?|yrs?|exp|experience)\b.*$', '', name_clean, flags=re.IGNORECASE).strip()
-
-    # Strip trailing tech stack keywords from candidate name
     name_clean = re.sub(r'\s+\b(?:Java|Tech|AWS|Microservices|Python|Golang|React|Node|Full\s*stack|Developer|Engineer|Architect|Lead|Manager|Consultant|Sr|Senior|Jr|Junior)\b.*$', '', name_clean, flags=re.IGNORECASE).strip()
-
-    # Strip trailing visa/doc noise suffixes
     name_clean = re.sub(r'\s+\b(?:I94|H1B|Travel|Visa|Resume|CV|Docx?|Pdf)\b.*$', '', name_clean, flags=re.IGNORECASE).strip()
 
     name_lower = name_clean.lower()
@@ -252,10 +283,11 @@ def clean_candidate_name(raw_name: str, filename: str = "", email: str = "", raw
     if job_words_count > 0 and (job_words_count >= len(words) / 2 or 'developer' in words or 'engineer' in words or 'sr' in words or 'dice' in words or 'scientist' in words):
         is_invalid = True
 
-    if is_invalid or not name_clean or name_lower in ['candidate', 'n/a', 'unknown', 'sr. golang developer', 'golang developer', 'data scientist', 'technical proficiency', 'solution stack']:
-        name_clean = infer_name_from_email_or_filename(email, filename)
+    if not is_invalid and name_clean and name_lower not in ['candidate', 'n/a', 'unknown', 'sr. golang developer', 'golang developer', 'data scientist', 'technical proficiency', 'solution stack']:
+        return name_clean.title()
 
-    return name_clean or "Candidate"
+    # 3. Fall back to email handle / filename parsing
+    return infer_name_from_email_or_filename(email, filename)
 
 def clean_candidate_location(raw_loc: str, text: str = "") -> str:
     if not raw_loc or not isinstance(raw_loc, str):
