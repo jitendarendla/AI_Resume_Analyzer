@@ -13,7 +13,7 @@ from app.core.config import settings
 from app.core.dependencies import get_current_recruiter
 from app.models.models import Recruiter, UploadSession, Candidate, CandidateMatch, UploadHistory, AuditLog
 from app.services.security_service import validate_and_scan_file
-from app.services.parser_service import extract_text_from_file, parse_resume_content, extract_rule_based_details
+from app.services.parser_service import extract_text_from_file, parse_resume_content, extract_rule_based_details, clean_candidate_name, clean_candidate_location
 from app.services.matching_service import match_candidate_to_jd
 
 router = APIRouter(prefix="/api/upload", tags=["Resume Upload"])
@@ -33,13 +33,21 @@ def process_single_resume(session_id: str, recruiter_id: str, file_path: str, fi
             raw_text = f"Text extraction fallback notice: {str(parse_err)}"
             parsed = extract_rule_based_details(raw_text, filename)
 
+        raw_name = parsed.get("name") or ""
+        email = parsed.get("email") or ""
+        phone = parsed.get("phone") or ""
+        raw_loc = parsed.get("location") or ""
+        
+        c_name = clean_candidate_name(raw_name, filename, email, raw_text)
+        c_loc = clean_candidate_location(raw_loc, raw_text)
+
         candidate = Candidate(
             session_id=session_id,
             recruiter_id=recruiter_id,
-            name=parsed.get("name") or "Candidate",
-            email=parsed.get("email") or "",
-            phone=parsed.get("phone") or "",
-            location=parsed.get("location") or "",
+            name=c_name,
+            email=email,
+            phone=phone,
+            location=c_loc,
             skills=parsed.get("skills") or [],
             education=parsed.get("education") or "",
             experience_years=float(parsed.get("experience_years") or 0.0),

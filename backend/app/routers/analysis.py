@@ -7,36 +7,43 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_recruiter
 from app.models.models import Recruiter, Candidate, CandidateMatch, UploadSession, UploadHistory
 from app.schemas.schemas import CandidateResponse
+from app.services.parser_service import clean_candidate_name, clean_candidate_location, extract_technology_title
 
 router = APIRouter(prefix="/api/analysis", tags=["Candidate Analysis"])
 
-@router.get("/candidates")
-def search_and_list_candidates(
-    search: Optional[str] = Query(None, description="Search by Candidate Name, Email, Phone, Skill, Company, or Report"),
-    session_id: Optional[str] = Query(None),
-    report_name: Optional[str] = Query(None, description="Filter candidates folder-wise / batch-wise"),
-    min_ats_score: Optional[float] = Query(0.0),
-    sort_by: Optional[str] = Query("ats_score", description="ats_score, match_pct, name, experience"),
-    sort_order: Optional[str] = Query("desc"),
+@router.get("/candidates", response_model=dict)
+def get_candidates(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=5000),
+    search: Optional[str] = Query(None),
+    min_ats_score: float = Query(0.0),
+    report_name: Optional[str] = Query(None),
+    sort_by: str = Query("ats_score"),
+    sort_order: str = Query("desc"),
     recruiter: Recruiter = Depends(get_current_recruiter),
     db: Session = Depends(get_db)
 ):
     query = db.query(Candidate).filter(Candidate.recruiter_id == recruiter.id)
-
-    joined_session = False
     joined_match = False
 
-    if session_id:
-        query = query.filter(Candidate.session_id == session_id)
-
     if report_name and report_name.strip() and report_name != "All Folders":
-        target_name = report_name.strip()
-        # Find matching session IDs from UploadSession and UploadHistory
-        s_ids = [s.id for s in db.query(UploadSession).filter(UploadSession.recruiter_id == recruiter.id, UploadSession.report_name == target_name).all()]
-        h_ids = [h.session_id for h in db.query(UploadHistory).filter(UploadHistory.recruiter_id == recruiter.id, UploadHistory.report_name == target_name).all() if h.session_id]
-        hist_ids = [h.id for h in db.query(UploadHistory).filter(UploadHistory.recruiter_id == recruiter.id, UploadHistory.report_name == target_name).all()]
+        sessions = db.query(UploadSession.id).filter(
+            UploadSession.recruiter_id == recruiter.id,
+            UploadSession.report_name == report_name
+        ).all()
+        histories = db.query(UploadHistory.session_id).filter(
+            UploadHistory.recruiter_id == recruiter.id,
+            UploadHistory.report_name == report_name
+        ).all()
+        hist_ids_raw = db.query(UploadHistory.id).filter(
+            UploadHistory.recruiter_id == recruiter.id,
+            UploadHistory.report_name == report_name
+        ).all()
+        
+        s_ids = [s[0] for s in sessions if s[0]]
+        h_ids = [h[0] for h in histories if h[0]]
+        hist_ids = [hi[0] for hi in hist_ids_raw if hi[0]]
+        
         all_ids = list(set(s_ids + h_ids + hist_ids))
         if all_ids:
             query = query.filter(Candidate.session_id.in_(all_ids))
@@ -82,6 +89,15 @@ def search_and_list_candidates(
     results = []
     for idx, cand in enumerate(candidates, start=(page - 1) * limit + 1):
         cand_dict = CandidateResponse.model_validate(cand)
+        
+        c_name = clean_candidate_name(cand.name, cand.file_name, cand.email, cand.raw_text or "")
+        c_loc = clean_candidate_location(cand.location, cand.raw_text or "")
+        c_title = extract_technology_title(cand.raw_text or "", cand.file_name, cand.skills or [])
+        
+        cand_dict.name = c_name
+        cand_dict.location = c_loc
+        cand_dict.technology_title = c_title
+
         if cand_dict.match:
             cand_dict.match.ranking = idx
         results.append(cand_dict)

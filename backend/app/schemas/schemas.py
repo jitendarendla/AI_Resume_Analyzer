@@ -54,6 +54,7 @@ class CandidateResponse(BaseModel):
     email: str
     phone: str
     location: str
+    technology_title: Optional[str] = "Software Engineer"
     skills: List[str]
     education: str
     experience_years: float
