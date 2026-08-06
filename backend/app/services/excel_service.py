@@ -8,7 +8,8 @@ from app.services.parser_service import (
     clean_candidate_name,
     clean_candidate_location,
     extract_technology_title,
-    extract_rule_based_details
+    extract_rule_based_details,
+    extract_all_skills_comprehensively
 )
 
 def generate_excel_report(report_name: str, candidate_data: list[dict]) -> str:
@@ -24,21 +25,21 @@ def generate_excel_report(report_name: str, candidate_data: list[dict]) -> str:
         raw_loc = item.get("location") or ""
         raw_text = item.get("raw_text") or ""
         skills_raw = item.get("skills") or []
-        # Combine dictionary & section skills for 100% comprehensive extraction
+
         comp_skills = extract_all_skills_comprehensively(raw_text) if raw_text else []
+
         if isinstance(skills_raw, list):
             all_skills = list(dict.fromkeys(skills_raw + comp_skills))
-            skills_str = ", ".join([str(s) for s in all_skills if s])
         elif isinstance(skills_raw, str) and skills_raw.strip():
-            all_skills = list(dict.fromkeys([skills_raw] + comp_skills))
-            skills_str = ", ".join([str(s) for s in all_skills if s])
+            all_skills = list(dict.fromkeys([s.strip() for s in skills_raw.split(",") if s.strip()] + comp_skills))
         else:
-            skills_str = ", ".join([str(s) for s in comp_skills if s])
+            all_skills = comp_skills
 
-        # Apply strict cleaning on export
+        skills_str = ", ".join([str(s) for s in all_skills if s])
+
         clean_name = clean_candidate_name(raw_name, resume_file, email, raw_text)
         clean_loc = clean_candidate_location(raw_loc, raw_text)
-        tech_title = extract_technology_title(raw_text, resume_file, all_skills if 'all_skills' in locals() else [])
+        tech_title = extract_technology_title(raw_text, resume_file, all_skills)
 
         rows.append({
             "S.No": idx,
