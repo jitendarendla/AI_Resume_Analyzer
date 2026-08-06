@@ -19,73 +19,78 @@ def export_excel_report(
     recruiter: Recruiter = Depends(get_current_recruiter),
     db: Session = Depends(get_db)
 ):
-    session_obj = db.query(UploadSession).filter(
-        UploadSession.id == identifier,
-        UploadSession.recruiter_id == recruiter.id
-    ).first()
-
-    report_name = "Resume Report"
-    target_session_id = identifier
-
-    if session_obj:
-        report_name = session_obj.report_name
-        target_session_id = session_obj.id
-    else:
-        hist_obj = db.query(UploadHistory).filter(
-            UploadHistory.id == identifier,
-            UploadHistory.recruiter_id == recruiter.id
+    try:
+        session_obj = db.query(UploadSession).filter(
+            UploadSession.id == identifier,
+            UploadSession.recruiter_id == recruiter.id
         ).first()
 
-        if hist_obj:
-            report_name = hist_obj.report_name
-            target_session_id = hist_obj.session_id or hist_obj.id
+        report_name = "Resume Report"
+        target_session_id = identifier
 
-    candidates = db.query(Candidate).filter(
-        Candidate.recruiter_id == recruiter.id,
-        Candidate.session_id == target_session_id
-    ).all()
+        if session_obj:
+            report_name = session_obj.report_name
+            target_session_id = session_obj.id
+        else:
+            hist_obj = db.query(UploadHistory).filter(
+                (UploadHistory.id == identifier) | (UploadHistory.session_id == identifier) | (UploadHistory.report_name == identifier),
+                UploadHistory.recruiter_id == recruiter.id
+            ).first()
 
-    if not candidates:
-        # Fallback to query candidates matching session or any upload record
+            if hist_obj:
+                report_name = hist_obj.report_name
+                target_session_id = hist_obj.session_id or hist_obj.id
+
         candidates = db.query(Candidate).filter(
-            Candidate.recruiter_id == recruiter.id
+            Candidate.recruiter_id == recruiter.id,
+            Candidate.session_id == target_session_id
         ).all()
 
-    cand_data = []
-    for c in candidates:
-        cand_data.append({
-            "name": c.name,
-            "email": c.email,
-            "phone": c.phone,
-            "file_name": c.file_name,
-            "location": c.location,
-            "skills": c.skills,
-            "raw_text": c.raw_text
-        })
+        if not candidates:
+            # Fallback to query candidates for this recruiter if specific session not found
+            candidates = db.query(Candidate).filter(
+                Candidate.recruiter_id == recruiter.id
+            ).limit(500).all()
 
-    excel_path = generate_excel_report(report_name, cand_data)
+        cand_data = []
+        for c in candidates:
+            cand_data.append({
+                "name": c.name or "",
+                "email": c.email or "",
+                "phone": c.phone or "",
+                "file_name": c.file_name or "",
+                "location": c.location or "",
+                "skills": c.skills or [],
+                "raw_text": c.raw_text or ""
+            })
 
-    dl_log = DownloadHistory(
-        recruiter_id=recruiter.id,
-        report_name=report_name,
-        excel_file=excel_path
-    )
-    db.add(dl_log)
+        excel_path = generate_excel_report(report_name, cand_data)
 
-    audit = AuditLog(
-        recruiter_id=recruiter.id,
-        action=f"Downloaded Excel report '{report_name}'",
-        ip_address=req.client.host if req.client else "127.0.0.1",
-        user_agent=req.headers.get("user-agent", "")
-    )
-    db.add(audit)
-    db.commit()
+        dl_log = DownloadHistory(
+            recruiter_id=recruiter.id,
+            report_name=report_name,
+            excel_file=excel_path
+        )
+        db.add(dl_log)
 
-    return FileResponse(
-        path=excel_path,
-        filename=f"{report_name.replace(' ', '_')}_Report.xlsx",
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        audit = AuditLog(
+            recruiter_id=recruiter.id,
+            action=f"Downloaded Excel report '{report_name}'",
+            ip_address=req.client.host if req.client else "127.0.0.1",
+            user_agent=req.headers.get("user-agent", "")
+        )
+        db.add(audit)
+        db.commit()
+
+        return FileResponse(
+            path=excel_path,
+            filename=f"{report_name.replace(' ', '_')}_Report.xlsx",
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as err:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Excel report export error: {str(err)}")
 
 @router.delete("/export/{identifier}")
 def delete_excel_report(

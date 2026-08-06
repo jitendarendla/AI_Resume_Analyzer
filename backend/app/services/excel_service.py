@@ -28,14 +28,21 @@ def generate_excel_report(report_name: str, candidate_data: list[dict]) -> str:
 
         comp_skills = extract_all_skills_comprehensively(raw_text) if raw_text else []
 
+        # Sanitize skills_raw to flat strings list to prevent unhashable dict/list TypeError
+        flat_skills = []
         if isinstance(skills_raw, list):
-            all_skills = list(dict.fromkeys(skills_raw + comp_skills))
+            for s in skills_raw:
+                if isinstance(s, str) and s.strip():
+                    flat_skills.append(s.strip())
+                elif isinstance(s, (dict, list)):
+                    flat_skills.extend([str(v).strip() for v in (s.values() if isinstance(s, dict) else s) if str(v).strip()])
+                elif s:
+                    flat_skills.append(str(s).strip())
         elif isinstance(skills_raw, str) and skills_raw.strip():
-            all_skills = list(dict.fromkeys([s.strip() for s in skills_raw.split(",") if s.strip()] + comp_skills))
-        else:
-            all_skills = comp_skills
+            flat_skills = [s.strip() for s in skills_raw.split(",") if s.strip()]
 
-        skills_str = ", ".join([str(s) for s in all_skills if s])
+        all_skills = list(dict.fromkeys(flat_skills + comp_skills))
+        skills_str = ", ".join([str(s) for s in all_skills if str(s).strip()])
 
         clean_name = clean_candidate_name(raw_name, resume_file, email, raw_text)
         clean_loc = clean_candidate_location(raw_loc, raw_text)
