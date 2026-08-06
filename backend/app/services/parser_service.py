@@ -112,14 +112,19 @@ INVALID_LOC_KEYWORDS = {
     'node.js', 'express', 'fastapi', 'spring', 'boot', 'microservices', 'postgresql', 'postgres',
     'mysql', 'mongodb', 'redis', 'elasticsearch', 'docker', 'kubernetes', 'k8s', 'aws', 'azure', 'gcp',
     'vmware', 'aria', 'finance', 'retail', 'banking', 'healthcare', 'telecom', 'insurance',
-    'domain', 'domains', 'industry', 'product', 'products', 'services', 'agile', 'scrum'
+    'domain', 'domains', 'industry', 'product', 'products', 'services', 'agile', 'scrum',
+    'lakehouse', 'delta', 'metropolis', 'neno', 'bedrock', 'amazon', 'project', 'management', 'statistical', 'statistic'
 }
 
-REJECT_NAME_WORDS = [
-    "page", "of", "work", "history", "employment", "project", "details",
-    "scalability", "transformation", "across", "warm", "regards", "ph", "no",
-    "summary", "profile", "contact", "curriculum", "vitae", "resume", "dice",
-    "experience", "education", "skills", "objective", "professional", "references", "cover", "letter"
+REJECT_NAME_HEADER_PATTERNS = [
+    "data scientist", "ai ml", "gen ai", "generative ai", "technical proficiency",
+    "solution stack", "expertise", "proficient", "work history", "employment",
+    "project details", "scalability", "transformation", "across", "warm regards",
+    "ph no", "page of", "summary", "profile", "contact", "curriculum", "vitae",
+    "resume", "dice", "experience", "education", "skills", "objective",
+    "professional", "references", "cover letter", "architect", "developer",
+    "engineer", "manager", "consultant", "scientist", "proficiency", "stack",
+    "technical", "solution", "solutions", "overview", "competencies", "highlights"
 ]
 
 # Non-blocking lock for local Ollama server
@@ -155,6 +160,28 @@ def extract_text_from_file(file_path: str) -> str:
         gc.collect()
     return text.strip()
 
+def infer_name_from_email_or_filename(email: str = "", filename: str = "") -> str:
+    if filename:
+        base = filename.rsplit('.', 1)[0]
+        base = re.sub(r'^(?:Dice_)?(?:Resume_)?(?:CV_)?(?:Resume)?', '', base, flags=re.IGNORECASE)
+        base = re.sub(r'(?:_Golang_Developer|_Golang|_Developer|_CV|_pro|_pdf|_docx|_Gen_AI_Engineer|_cover_letter|_Resume)$', '', base, flags=re.IGNORECASE)
+        base = re.sub(r'[-_]', ' ', base).strip()
+        base = re.sub(r'([a-z])([A-Z])', r'\1 \2', base).strip()
+        base = re.sub(r'\b(?:I94|H1B|Travel|Gen AI Engineer|Sr Gen AI Developer|Developer|Engineer|CV|Resume|Data Scientist|Solution Stack)\b', '', base, flags=re.IGNORECASE).strip()
+        fn_words = [w for w in base.split() if w.lower() not in JOB_TITLE_KEYWORDS and len(w) > 1]
+        if fn_words:
+            return " ".join(fn_words).title()
+
+    if email:
+        handle = email.split('@')[0]
+        handle_clean = re.sub(r'\d+', '', handle)
+        handle_clean = re.sub(r'^c(?=[a-z]{4,})', '', handle_clean, flags=re.IGNORECASE)
+        parts = [p.capitalize() for p in re.split(r'[._-]', handle_clean) if len(p) > 1 and p.lower() not in JOB_TITLE_KEYWORDS]
+        if parts:
+            return " ".join(parts)
+
+    return "Candidate"
+
 def clean_candidate_name(raw_name: str, filename: str = "", email: str = "", raw_text: str = "") -> str:
     name_clean = str(raw_name or "").strip()
 
@@ -174,35 +201,19 @@ def clean_candidate_name(raw_name: str, filename: str = "", email: str = "", raw
     words = [w.lower().strip('.') for w in name_clean.split()]
 
     is_invalid = False
-    if any(nw in words for nw in ["work", "history", "employment", "details", "scalability", "transformation", "across", "warm", "regards", "ph", "no", "page"]):
+    if any(pat in name_lower for pat in REJECT_NAME_HEADER_PATTERNS):
+        is_invalid = True
+    if any(nw in words for nw in ["work", "history", "employment", "details", "scalability", "transformation", "across", "warm", "regards", "ph", "no", "page", "stack", "proficiency"]):
         is_invalid = True
     if len(words) == 2 and words[0] == "page" and words[1] == "of":
         is_invalid = True
 
     job_words_count = sum(1 for w in words if w in JOB_TITLE_KEYWORDS)
-    if job_words_count > 0 and (job_words_count >= len(words) / 2 or 'developer' in words or 'engineer' in words or 'sr' in words or 'dice' in words):
+    if job_words_count > 0 and (job_words_count >= len(words) / 2 or 'developer' in words or 'engineer' in words or 'sr' in words or 'dice' in words or 'scientist' in words):
         is_invalid = True
 
-    if is_invalid or not name_clean or name_lower in ['candidate', 'n/a', 'unknown', 'sr. golang developer', 'golang developer']:
-        name_clean = ""
-
-        if filename:
-            base = filename.rsplit('.', 1)[0]
-            base = re.sub(r'^(?:Dice_)?(?:Resume_)?(?:CV_)?(?:Resume)?', '', base, flags=re.IGNORECASE)
-            base = re.sub(r'(?:_Golang_Developer|_Golang|_Developer|_CV|_pro|_pdf|_docx|_Gen_AI_Engineer|_cover_letter|_Resume)$', '', base, flags=re.IGNORECASE)
-            base = re.sub(r'[-_]', ' ', base).strip()
-            base = re.sub(r'([a-z])([A-Z])', r'\1 \2', base).strip()
-            base = re.sub(r'\b(?:I94|H1B|Travel|Gen AI Engineer|Sr Gen AI Developer|Developer|Engineer|CV|Resume)\b', '', base, flags=re.IGNORECASE).strip()
-            fn_words = [w for w in base.split() if w.lower() not in JOB_TITLE_KEYWORDS and len(w) > 1]
-            if fn_words:
-                name_clean = " ".join(fn_words).title()
-
-        if not name_clean and email:
-            handle = email.split('@')[0]
-            handle_clean = re.sub(r'\d+', '', handle)
-            parts = [p.capitalize() for p in re.split(r'[._-]', handle_clean) if len(p) > 1 and p.lower() not in JOB_TITLE_KEYWORDS]
-            if parts:
-                name_clean = " ".join(parts)
+    if is_invalid or not name_clean or name_lower in ['candidate', 'n/a', 'unknown', 'sr. golang developer', 'golang developer', 'data scientist', 'technical proficiency', 'solution stack']:
+        name_clean = infer_name_from_email_or_filename(email, filename)
 
     return name_clean or "Candidate"
 
@@ -211,6 +222,14 @@ def clean_candidate_location(raw_loc: str, text: str = "") -> str:
         return ""
 
     loc_clean = raw_loc.strip()
+
+    # Extract location if candidate name leaked into location string (e.g. "Shankar Ramesh NagvekarDublin, California")
+    loc_match = re.search(r'\b([A-Z][a-zA-Z\s]+,?\s*(?:California|CA|Texas|TX|Virginia|VA|Illinois|IL|New York|NY|Florida|FL|Georgia|GA|Washington|WA|Maryland|MD|United States|USA|India|UK))\b', loc_clean, re.IGNORECASE)
+    if loc_match:
+        matched_loc = loc_match.group(1).strip()
+        matched_loc = re.sub(r'^[A-Z][a-z]+\s+[A-Z][a-z]+\s+(?=[A-Z])', '', matched_loc).strip()
+        loc_clean = matched_loc
+
     loc_lower = loc_clean.lower()
 
     # Reject if ANY word in location matches a tech skill or invalid keyword
@@ -226,7 +245,7 @@ def clean_candidate_location(raw_loc: str, text: str = "") -> str:
 
     loc_clean = re.sub(r'^[A-Z][a-z]+\s+[A-Z][a-z]+(?=[A-Z])', '', loc_clean).strip()
     loc_clean = re.sub(r'^St,\s*', '', loc_clean).strip()
-    return loc_clean
+    return loc_clean.title()
 
 def extract_technology_title(text: str = "", filename: str = "", skills: list = None) -> str:
     # 1. Search top 25 lines of text for explicit job titles
@@ -478,7 +497,10 @@ def extract_rule_based_details(text: str, filename: str = "") -> dict:
     for line in lines[:8]:
         if "@" in line or "http" in line or "www." in line or re.search(r'\d{5,}', line):
             continue
-        if any(h in line.lower() for h in ["resume", "curriculum vitae", "cv", "profile", "contact", "summary", "experience", "education", "skills"]):
+        line_lower = line.lower()
+        if any(pat in line_lower for pat in REJECT_NAME_HEADER_PATTERNS):
+            continue
+        if any(h in line_lower for h in ["resume", "curriculum vitae", "cv", "profile", "contact", "summary", "experience", "education", "skills"]):
             continue
         clean_line = re.sub(r'[^a-zA-Z\s.-]', '', line).strip()
         words = [w.lower() for w in clean_line.split()]
