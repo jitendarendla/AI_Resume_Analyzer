@@ -17,24 +17,28 @@ SKILLS_LEXICON = [
     "react", "react.js", "next.js", "vue", "vue.js", "angular", "svelte", "redux", "tailwind",
     "tailwind css", "bootstrap", "sass", "webpack", "vite", "html5", "css3", "jquery",
     # Backend & Frameworks
-    "node.js", "express", "fastapi", "django", "flask", "spring", "spring boot", ".net",
-    "asp.net", "graphql", "rest api", "restful api", "microservices", "grpc", "gin", "gorilla",
+    "node.js", "express", "fastapi", "django", "flask", "spring", "spring boot", "springboot", ".net",
+    "asp.net", "graphql", "rest api", "restful api", "microservices", "grpc", "gin", "gorilla", "hibernate",
     # Databases
     "postgresql", "postgres", "mysql", "mongodb", "sqlite", "redis", "memcached", "elasticsearch",
-    "dynamodb", "cassandra", "oracle", "sql server", "firebase", "neo4j",
+    "dynamodb", "cassandra", "oracle", "sql server", "firebase", "neo4j", "vectordb", "vectordbs",
     # DevOps & Cloud
     "docker", "kubernetes", "k8s", "aws", "amazon web services", "azure", "gcp",
     "google cloud", "terraform", "ansible", "jenkins", "git", "github", "gitlab",
-    "bitbucket", "ci/cd", "prometheus", "grafana", "linux", "unix", "nginx",
+    "bitbucket", "ci/cd", "prometheus", "grafana", "linux", "unix", "nginx", "maven", "gradle",
+    "eclipse", "intellij", "sonarqube", "fortify", "veracode",
     # Data Science & AI/ML
     "pandas", "numpy", "scikit-learn", "scikit learn", "tensorflow", "pytorch", "keras",
     "nlp", "natural language processing", "machine learning", "deep learning", "ai",
     "artificial intelligence", "computer vision", "opencv", "tableau", "power bi",
     "spark", "hadoop", "kafka", "pyspark", "scipy", "seaborn", "matplotlib",
-    # Methodologies & Tools
-    "agile", "scrum", "jira", "confluence", "figma", "postman", "system design",
+    "genai", "gen ai", "generative ai", "openai", "chatgpt", "llama", "llama3", "rag",
+    "langchain", "rasa", "sagemaker", "vertexai", "automl", "nltk",
+    # Security & Protocols & Architecture
+    "saml", "oauth2", "jwt", "mqtt", "gepredix", "edge computing", "safe", "sdlc", "kanban",
+    "scrum", "agile", "jira", "confluence", "figma", "postman", "system design",
     "data structures", "algorithms", "oop", "object-oriented programming", "unit testing",
-    "pytest", "jest", "cypress", "selenium"
+    "pytest", "jest", "cypress", "selenium", "enterprise architecture", "predictive analytics"
 ]
 
 SKILLS_DATABASE = set(SKILLS_LEXICON)
@@ -46,8 +50,23 @@ TECH_CASING = {
     "docker": "Docker", "kubernetes": "Kubernetes", "aws": "AWS", "gcp": "GCP",
     "azure": "Azure", "git": "Git", "github": "GitHub", "gitlab": "GitLab",
     "rest api": "REST API", "ci/cd": "CI/CD", "html": "HTML", "css": "CSS",
-    "c++": "C++", "c#": "C#", "golang": "Golang", "go": "Go", "gin": "Gin", "gorilla": "Gorilla"
+    "c++": "C++", "c#": "C#", "golang": "Golang", "go": "Go", "gin": "Gin", "gorilla": "Gorilla",
+    "genai": "GenAI", "generative ai": "Generative AI", "openai": "OpenAI",
+    "chatgpt": "ChatGPT", "llama3": "LLaMA3", "rag": "RAG", "vectordb": "VectorDB",
+    "langchain": "LangChain", "springboot": "SpringBoot", "hibernate": "Hibernate",
+    "sagemaker": "SageMaker", "vertexai": "VertexAI", "automl": "AutoML",
+    "scikit-learn": "Scikit-Learn", "saml": "SAML", "oauth2": "OAuth2", "jwt": "JWT",
+    "mqtt": "MQTT", "gepredix": "GEPredix", "sdlc": "SDLC", "kanban": "Kanban",
+    "sonarqube": "SonarQube", "fortify": "Fortify", "veracode": "Veracode"
 }
+
+def preprocess_resume_text(text: str) -> str:
+    if not text:
+        return ""
+    # Replace middle dots (·), bullet points (•), pilcrows (¶), non-breaking spaces (\xa0)
+    cleaned = text.replace('\u00b7', ' ').replace('\u2022', ' ').replace('\u00b6', ' ').replace('\xa0', ' ')
+    lines = [re.sub(r'[ \t]{2,}', ' ', l).strip() for l in cleaned.split('\n')]
+    return '\n'.join(lines).strip()
 
 # PRE-COMPILED ULTRA FAST REGEX PATTERNS
 SKILL_REGEX_MAP = {
@@ -179,7 +198,7 @@ def extract_text_from_file(file_path: str) -> str:
         print(f"[WARNING] Error reading {file_path}: {e}")
     finally:
         gc.collect()
-    return text.strip()
+    return preprocess_resume_text(text)
 
 def infer_name_from_email_or_filename(email: str = "", filename: str = "") -> str:
     if filename:
@@ -271,12 +290,16 @@ def clean_candidate_location(raw_loc: str, text: str = "") -> str:
 def extract_technology_title(text: str = "", filename: str = "", skills: list = None) -> str:
     # 1. Search top 25 lines of text for explicit job titles
     if text:
-        lines = [l.strip() for l in text.split("\n") if l.strip()][:25]
+        clean_text = preprocess_resume_text(text)
+        lines = [l.strip() for l in clean_text.split("\n") if l.strip()][:25]
         for line in lines:
             line_lower = line.lower()
             if any(term in line_lower for term in ["developer", "engineer", "architect", "consultant", "lead", "specialist", "administrator"]):
-                if len(line) < 70 and not any(kw in line_lower for kw in ["experience", "education", "skills", "summary", "profile", "contact", "objective", "responsibilities"]):
-                    clean_title = re.sub(r'[^a-zA-Z0-9\s/.\-+]', '', line).strip()
+                if not any(kw in line_lower for kw in ["experience", "education", "skills", "summary", "profile", "contact", "objective", "responsibilities"]):
+                    # Strip email and phone if attached on same line
+                    clean_line = re.sub(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}.*$', '', line, flags=re.IGNORECASE).strip()
+                    clean_line = re.sub(r'(?:\+|\b)(?:[0-9]{1,4}[-.\s]?)?\(?[0-9]{2,4}\)?[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{3,4}.*$', '', clean_line).strip()
+                    clean_title = re.sub(r'[^a-zA-Z0-9\s/.\-+]', '', clean_line).strip()
                     clean_title = re.sub(r'^(?:title|role|position|profile)\s*[:\-]?\s*', '', clean_title, flags=re.IGNORECASE).strip()
                     if clean_title and len(clean_title.split()) <= 6:
                         return clean_title.title()
