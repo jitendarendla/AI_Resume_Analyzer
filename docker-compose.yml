@@ -1,19 +1,18 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
     container_name: resume_analyzer_db
+    restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Sonu@801
-      POSTGRES_DB: resume_analyzer_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Sonu@801}
+      POSTGRES_DB: ${POSTGRES_DB:-resume_analyzer_db}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,15 +22,21 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: resume_analyzer_backend
+    restart: always
     ports:
       - "8000:8000"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=Sonu@801
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-Sonu@801}
       - POSTGRES_SERVER=postgres
       - POSTGRES_PORT=5432
-      - POSTGRES_DB=resume_analyzer_db
-      - SECRET_KEY=9e8a71c42f0b4d21e8a93019d1e34a6b29f0e1d2c3b4a567890abcdef123456
+      - POSTGRES_DB=${POSTGRES_DB:-resume_analyzer_db}
+      - SECRET_KEY=${SECRET_KEY:-9e8a71c42f0b4d21e8a93019d1e34a6b29f0e1d2c3b4a567890abcdef123456}
+      - CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000","http://localhost:8000"]
+    volumes:
+      - uploads_data:/app/uploads
+      - reports_data:/app/generated_reports
+      - quarantine_data:/app/quarantine
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,6 +46,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: resume_analyzer_frontend
+    restart: always
     ports:
       - "3000:3000"
     environment:
@@ -50,3 +56,10 @@ services:
 
 volumes:
   pgdata:
+    driver: local
+  uploads_data:
+    driver: local
+  reports_data:
+    driver: local
+  quarantine_data:
+    driver: local
