@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import FloatingDock from '@/components/layout/FloatingDock';
 import CandidateModal from '@/components/ui/CandidateModal';
+import CandidateCompareModal from '@/components/ui/CandidateCompareModal';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import {
@@ -12,6 +13,7 @@ import {
   Filter,
   ArrowUpDown,
   Eye,
+  GitCompareArrows,
   FolderKanban,
   ListFilter,
   ChevronLeft,
@@ -32,6 +34,8 @@ export default function CandidatesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
 
   const { token } = useAuth();
 
@@ -44,6 +48,30 @@ export default function CandidatesPage() {
       fetchCandidates();
     }
   }, [token, search, minAts, sortBy, sortOrder, selectedFolder, page, pageSize]);
+
+  // Comparison is limited to the current result set/page. Clear selections whenever
+  // the visible result set changes so stale records cannot be compared accidentally.
+  useEffect(() => {
+    setSelectedCandidateIds([]);
+    setIsCompareOpen(false);
+  }, [search, minAts, sortBy, sortOrder, selectedFolder, page, pageSize]);
+
+  const selectedCandidates = candidates.filter((candidate) =>
+    selectedCandidateIds.includes(String(candidate.id))
+  );
+
+  const toggleCandidateSelection = (candidate: any) => {
+    const id = String(candidate.id);
+    setSelectedCandidateIds((current) => {
+      if (current.includes(id)) {
+        return current.filter((selectedId) => selectedId !== id);
+      }
+      if (current.length >= 2) {
+        return current;
+      }
+      return [...current, id];
+    });
+  };
 
   const fetchFolders = async () => {
     try {
@@ -101,6 +129,30 @@ export default function CandidatesPage() {
             <p className="text-xs sm:text-sm font-semibold text-slate-400 mt-1">
               Showing {candidates.length} candidates per page (Page {page} of {totalPages})
             </p>
+          </div>
+        </div>
+
+        {/* Comparison Action */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#111827]/80 border border-white/10 shadow-xl backdrop-blur-xl">
+          <div>
+            <p className="text-sm font-black text-white">Compare two applicants</p>
+            <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+              Select up to two candidates from the current result set.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-black text-slate-400">
+              {selectedCandidateIds.length}/2 selected
+            </span>
+            <button
+              type="button"
+              disabled={selectedCandidateIds.length !== 2}
+              onClick={() => setIsCompareOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-black shadow-md shadow-cyan-500/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer inline-flex items-center gap-2 transition-all"
+            >
+              <GitCompareArrows className="w-4 h-4" />
+              Compare Selected
+            </button>
           </div>
         </div>
 
@@ -212,20 +264,21 @@ export default function CandidatesPage() {
                   <th className="p-4 text-center">ATS Match Score</th>
                   <th className="p-4">Experience & Education</th>
                   <th className="p-4">Key Skills</th>
+                  <th className="p-4 text-center">Compare</th>
                   <th className="p-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-xs font-semibold text-slate-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="p-12 text-center text-xs font-bold text-slate-400">
+                    <td colSpan={7} className="p-12 text-center text-xs font-bold text-slate-400">
                       <div className="w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                       Loading candidate records...
                     </td>
                   </tr>
                 ) : candidates.length > 0 ? (
                   candidates.map((candidate, idx) => (
-                    <tr key={candidate.id} className="hover:bg-slate-800/50 transition-colors">
+                    <tr key={candidate.id} className={`transition-colors ${selectedCandidateIds.includes(String(candidate.id)) ? 'bg-cyan-500/5' : 'hover:bg-slate-800/50'}`}>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <span className="w-7 h-7 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-black text-xs shrink-0 border border-cyan-500/20 font-mono">
@@ -246,7 +299,7 @@ export default function CandidatesPage() {
 
                       <td className="p-4 text-center">
                         <span className="px-3 py-1.5 rounded-full font-mono font-black text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm">
-                          {candidate.ats_score}%
+                          {candidate.match?.ats_score ?? candidate.ats_score ?? 'Unavailable'}{candidate.match?.ats_score !== undefined || candidate.ats_score !== undefined ? '%' : ''}
                         </span>
                       </td>
 
@@ -268,6 +321,19 @@ export default function CandidatesPage() {
                         </div>
                       </td>
 
+                      <td className="p-4 text-center">
+                        <button
+                          type="button"
+                          aria-label={selectedCandidateIds.includes(String(candidate.id)) ? `Remove ${candidate.name} from comparison` : `Select ${candidate.name} for comparison`}
+                          title={selectedCandidateIds.includes(String(candidate.id)) ? 'Remove from comparison' : selectedCandidateIds.length >= 2 ? 'Two candidates already selected' : 'Select for comparison'}
+                          disabled={!selectedCandidateIds.includes(String(candidate.id)) && selectedCandidateIds.length >= 2}
+                          onClick={() => toggleCandidateSelection(candidate)}
+                          className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${selectedCandidateIds.includes(String(candidate.id)) ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-md shadow-cyan-500/20' : 'bg-slate-800 border-white/10 text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                        >
+                          <GitCompareArrows className="w-4 h-4" />
+                        </button>
+                      </td>
+
                       <td className="p-4 text-right">
                         <button
                           onClick={() => setSelectedCandidate(candidate)}
@@ -281,7 +347,7 @@ export default function CandidatesPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="p-12 text-center text-xs font-bold text-slate-500 italic">
+                    <td colSpan={7} className="p-12 text-center text-xs font-bold text-slate-500 italic">
                       No candidates found matching filter criteria.
                     </td>
                   </tr>
@@ -349,6 +415,13 @@ export default function CandidatesPage() {
         <CandidateModal
           candidate={selectedCandidate}
           onClose={() => setSelectedCandidate(null)}
+        />
+      )}
+
+      {isCompareOpen && selectedCandidates.length === 2 && (
+        <CandidateCompareModal
+          candidates={selectedCandidates}
+          onClose={() => setIsCompareOpen(false)}
         />
       )}
 
